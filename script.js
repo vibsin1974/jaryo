@@ -528,7 +528,7 @@ class FileManager {
                     // Storage 버킷 확인
                     const bucketExists = await SupabaseHelper.checkOrCreateBucket();
                     if (!bucketExists) {
-                        throw new Error('Storage 버킷이 설정되지 않았습니다. Supabase Dashboard에서 "files" 버킷을 생성해주세요.');
+                        throw new Error('Storage 버킷 접근 권한이 없습니다. Storage 정책을 확인해주세요.');
                     }
                     
                     // Supabase Storage에 업로드
@@ -599,7 +599,7 @@ class FileManager {
             // Storage 버킷 확인
             const bucketExists = await SupabaseHelper.checkOrCreateBucket();
             if (!bucketExists) {
-                throw new Error('Storage 버킷이 설정되지 않았습니다. 관리자에게 문의하세요.');
+                throw new Error('Storage 버킷 접근 권한이 없습니다. Storage 정책을 확인해주세요.');
             }
             
             const url = await SupabaseHelper.getFileUrl(filePath);
