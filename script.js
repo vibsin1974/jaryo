@@ -78,6 +78,22 @@ class FileManager {
         return ''; // 확장자가 없는 경우
     }
 
+    // 브라우저별 다운로드 폴더 경로 추정
+    getDownloadFolderPath() {
+        const userAgent = navigator.userAgent.toLowerCase();
+        const platform = navigator.platform.toLowerCase();
+        
+        if (platform.includes('win')) {
+            return '다운로드 폴더 (C:\\Users\\사용자명\\Downloads)';
+        } else if (platform.includes('mac')) {
+            return '다운로드 폴더 (~/Downloads)';
+        } else if (platform.includes('linux')) {
+            return '다운로드 폴더 (~/Downloads)';
+        } else {
+            return '브라우저 기본 다운로드 폴더';
+        }
+    }
+
     // 인증 관련 메서드들
     async initializeAuth() {
         try {
@@ -609,7 +625,13 @@ class FileManager {
             const link = document.createElement('a');
             link.href = url;
             link.download = originalName;
-            link.target = '_blank';
+            
+            // Ctrl/Cmd 키를 누른 상태에서 클릭하면 "다른 이름으로 저장" 대화상자 표시
+            if (window.event && (window.event.ctrlKey || window.event.metaKey)) {
+                link.target = '_blank';
+                // 브라우저의 다운로드 관리자로 보내기
+            }
+            
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -809,7 +831,7 @@ class FileManager {
                         <button class="edit-btn" onclick="fileManager.editFile('${file.id}')">✏️ 수정</button>
                         <button class="delete-btn" onclick="fileManager.deleteFile('${file.id}')">🗑️ 삭제</button>
                     ` : ''}
-                    ${file.files.length > 0 ? `<button class="download-btn" onclick="fileManager.downloadFiles('${file.id}')">💾 다운로드</button>` : ''}
+                    ${file.files.length > 0 ? `<button class="download-btn" onclick="fileManager.downloadFiles('${file.id}')" title="클릭: 기본 다운로드 폴더로 저장&#10;Ctrl+클릭: 저장 위치 선택">💾 다운로드</button>` : ''}
                     ${file.isReadOnly ? `<span class="read-only-badge">👁️ 읽기 전용</span>` : ''}
                 </div>
             </div>
@@ -916,7 +938,16 @@ class FileManager {
                 }
             }
             const fileNames = file.files.map(f => f.original_name || f.name).join(', ');
-            this.showNotification(`파일 다운로드 완료: ${fileNames}`, 'success');
+            const downloadFolder = this.getDownloadFolderPath();
+            
+            // 첫 번째 다운로드인지 확인
+            const isFirstDownload = !localStorage.getItem('hasDownloadedBefore');
+            if (isFirstDownload) {
+                localStorage.setItem('hasDownloadedBefore', 'true');
+                this.showNotification(`파일 다운로드 완료: ${fileNames}\n저장 위치: ${downloadFolder}\n\n💡 팁: 브라우저 설정에서 다운로드 폴더를 변경할 수 있습니다.`, 'success');
+            } else {
+                this.showNotification(`파일 다운로드 완료: ${fileNames}`, 'success');
+            }
         } catch (error) {
             console.error('파일 다운로드 오류:', error);
             this.showNotification('파일 다운로드 중 오류가 발생했습니다.', 'error');
