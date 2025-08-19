@@ -358,20 +358,42 @@ class FileManager {
 
         try {
             this.updateSyncStatus('syncing');
+            console.log('파일 데이터 추가 중...', fileData);
+            
             const result = await SupabaseHelper.addFile(fileData, this.currentUser.id);
+            console.log('파일 데이터 추가 성공:', result);
             
             // 첨부파일이 있는 경우 파일 업로드 처리
             if (fileData.files && fileData.files.length > 0) {
+                console.log(`${fileData.files.length}개의 첨부파일 업로드 시작...`);
                 await this.uploadAttachments(result.id, fileData.files);
+                console.log('모든 첨부파일 업로드 완료');
             }
 
             this.showNotification('새 자료가 성공적으로 추가되었습니다!', 'success');
             await this.loadUserFiles(); // 목록 새로고침
             this.updateSyncStatus('online');
+            this.clearForm(); // 폼 초기화
+            
         } catch (error) {
             console.error('파일 추가 오류:', error);
-            this.showNotification('파일 추가 중 오류가 발생했습니다.', 'error');
+            
+            // 더 구체적인 에러 메시지 제공
+            let errorMessage = '파일 추가 중 오류가 발생했습니다.';
+            if (error.message) {
+                errorMessage += ` (${error.message})`;
+            }
+            
+            this.showNotification(errorMessage, 'error');
             this.updateSyncStatus('error');
+            
+            // 콘솔에 상세 오류 정보 출력
+            if (error.details) {
+                console.error('오류 상세:', error.details);
+            }
+            if (error.hint) {
+                console.error('오류 힌트:', error.hint);
+            }
         }
     }
 
@@ -463,35 +485,80 @@ class FileManager {
     // 파일 업로드 관련 메서드들
     async uploadAttachments(fileId, attachments) {
         if (!isSupabaseConfigured() || !this.currentUser) {
+            console.log('오프라인 모드: 첨부파일을 base64로 저장합니다.');
             return; // 오프라인 모드에서는 base64로 저장된 상태 유지
         }
 
+        const uploadedFiles = [];
+        
         try {
-            for (const attachment of attachments) {
-                // base64 데이터를 Blob으로 변환
-                const response = await fetch(attachment.data);
-                const blob = await response.blob();
+            for (let i = 0; i < attachments.length; i++) {
+                const attachment = attachments[i];
                 
-                // 파일 경로 생성 (사용자별/파일ID별 폴더 구조)
-                const fileName = `${Date.now()}_${attachment.name}`;
-                const filePath = `${this.currentUser.id}/${fileId}/${fileName}`;
-                
-                // Supabase Storage에 업로드
-                await SupabaseHelper.uploadFile(blob, filePath);
-                
-                // 데이터베이스에 첨부파일 정보 저장
-                if (supabase) {
-                    await supabase.from('file_attachments').insert({
-                        file_id: fileId,
+                try {
+                    console.log(`파일 업로드 중... (${i + 1}/${attachments.length}): ${attachment.name}`);
+                    
+                    // base64 데이터를 Blob으로 변환
+                    const response = await fetch(attachment.data);
+                    const blob = await response.blob();
+                    
+                    // 파일 경로 생성 (사용자별/파일ID별 폴더 구조)
+                    const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${attachment.name}`;
+                    const filePath = `${this.currentUser.id}/${fileId}/${fileName}`;
+                    
+                    // Supabase Storage에 업로드
+                    const uploadResult = await SupabaseHelper.uploadFile(blob, filePath);
+                    console.log('Storage 업로드 성공:', uploadResult);
+                    
+                    // 데이터베이스에 첨부파일 정보 저장
+                    const attachmentResult = await this.addFileAttachment(fileId, {
                         original_name: attachment.name,
                         storage_path: filePath,
                         file_size: attachment.size || blob.size,
                         mime_type: attachment.type || blob.type
                     });
+                    
+                    uploadedFiles.push(attachmentResult);
+                    console.log('첨부파일 정보 저장 성공:', attachmentResult);
+                    
+                } catch (fileError) {
+                    console.error(`파일 "${attachment.name}" 업로드 실패:`, fileError);
+                    throw new Error(`파일 "${attachment.name}" 업로드에 실패했습니다: ${fileError.message}`);
                 }
             }
+            
+            console.log('모든 첨부파일 업로드 완료:', uploadedFiles);
+            return uploadedFiles;
+            
         } catch (error) {
             console.error('파일 업로드 오류:', error);
+            
+            // 부분적으로 업로드된 파일들 정리 (선택사항)
+            try {
+                for (const uploadedFile of uploadedFiles) {
+                    if (uploadedFile.storage_path) {
+                        await SupabaseHelper.deleteStorageFile(uploadedFile.storage_path);
+                    }
+                }
+            } catch (cleanupError) {
+                console.error('업로드 실패 파일 정리 중 오류:', cleanupError);
+            }
+            
+            throw error;
+        }
+    }
+
+    async addFileAttachment(fileId, attachmentData) {
+        if (!isSupabaseConfigured()) {
+            return; // 오프라인 모드에서는 처리하지 않음
+        }
+
+        try {
+            // SupabaseHelper를 통해 첨부파일 정보 저장
+            const result = await SupabaseHelper.addFileAttachment(fileId, attachmentData);
+            return result;
+        } catch (error) {
+            console.error('첨부파일 정보 저장 오류:', error);
             throw error;
         }
     }

@@ -214,6 +214,23 @@ const SupabaseHelper = {
             .remove([filePath]);
             
         if (error) throw error;
+    },
+
+    // 첨부파일 정보 추가
+    async addFileAttachment(fileId, attachmentData) {
+        if (!supabase) throw new Error('Supabase가 초기화되지 않았습니다.');
+        
+        const { data, error } = await supabase
+            .from('file_attachments')
+            .insert([{
+                file_id: fileId,
+                ...attachmentData
+            }])
+            .select()
+            .single();
+            
+        if (error) throw error;
+        return data;
     }
 };
 
