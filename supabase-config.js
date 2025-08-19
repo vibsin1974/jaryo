@@ -211,11 +211,32 @@ const SupabaseHelper = {
     async getFileUrl(filePath) {
         if (!supabase) throw new Error('Supabase가 초기화되지 않았습니다.');
         
-        const { data } = supabase.storage
-            .from('files')
-            .getPublicUrl(filePath);
+        try {
+            // 먼저 파일이 존재하는지 확인
+            const { data: fileExists, error: checkError } = await supabase.storage
+                .from('files')
+                .list(filePath.substring(0, filePath.lastIndexOf('/')), {
+                    search: filePath.substring(filePath.lastIndexOf('/') + 1)
+                });
+                
+            if (checkError) {
+                throw new Error(`Storage 버킷 오류: ${checkError.message}`);
+            }
             
-        return data.publicUrl;
+            if (!fileExists || fileExists.length === 0) {
+                throw new Error('파일을 찾을 수 없습니다.');
+            }
+            
+            // 파일이 존재하면 URL 생성
+            const { data } = supabase.storage
+                .from('files')
+                .getPublicUrl(filePath);
+                
+            return data.publicUrl;
+        } catch (error) {
+            console.error('파일 URL 생성 오류:', error);
+            throw error;
+        }
     },
 
     // 파일 삭제 (Storage)
@@ -244,6 +265,36 @@ const SupabaseHelper = {
             
         if (error) throw error;
         return data;
+    },
+
+    // Storage 버킷 확인 및 생성
+    async checkOrCreateBucket() {
+        if (!supabase) throw new Error('Supabase가 초기화되지 않았습니다.');
+        
+        try {
+            // 버킷 목록 확인
+            const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+            
+            if (listError) {
+                console.error('버킷 목록 조회 오류:', listError);
+                return false;
+            }
+            
+            // 'files' 버킷이 있는지 확인
+            const filesBucket = buckets.find(bucket => bucket.name === 'files');
+            
+            if (filesBucket) {
+                console.log('✅ files 버킷이 존재합니다.');
+                return true;
+            } else {
+                console.warn('⚠️ files 버킷이 존재하지 않습니다.');
+                console.log('Supabase Dashboard에서 files 버킷을 생성해주세요.');
+                return false;
+            }
+        } catch (error) {
+            console.error('버킷 확인 오류:', error);
+            return false;
+        }
     }
 };
 

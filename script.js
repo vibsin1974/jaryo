@@ -525,6 +525,12 @@ class FileManager {
                     const safeFileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}${fileExtension}`;
                     const filePath = `${this.currentUser.id}/${fileId}/${safeFileName}`;
                     
+                    // Storage 버킷 확인
+                    const bucketExists = await SupabaseHelper.checkOrCreateBucket();
+                    if (!bucketExists) {
+                        throw new Error('Storage 버킷이 설정되지 않았습니다. Supabase Dashboard에서 "files" 버킷을 생성해주세요.');
+                    }
+                    
                     // Supabase Storage에 업로드
                     const uploadResult = await SupabaseHelper.uploadFile(blob, filePath);
                     console.log('Storage 업로드 성공:', uploadResult);
@@ -588,7 +594,16 @@ class FileManager {
         }
 
         try {
+            console.log('파일 다운로드 시도:', filePath, originalName);
+            
+            // Storage 버킷 확인
+            const bucketExists = await SupabaseHelper.checkOrCreateBucket();
+            if (!bucketExists) {
+                throw new Error('Storage 버킷이 설정되지 않았습니다. 관리자에게 문의하세요.');
+            }
+            
             const url = await SupabaseHelper.getFileUrl(filePath);
+            console.log('다운로드 URL 생성:', url);
             
             // 다운로드 링크 생성
             const link = document.createElement('a');
@@ -598,9 +613,20 @@ class FileManager {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            
+            console.log('파일 다운로드 완료:', originalName);
         } catch (error) {
             console.error('파일 다운로드 오류:', error);
-            this.showNotification('파일 다운로드 중 오류가 발생했습니다.', 'error');
+            
+            // 더 구체적인 오류 메시지 제공
+            let errorMessage = '파일 다운로드 중 오류가 발생했습니다.';
+            if (error.message.includes('Bucket not found')) {
+                errorMessage = 'Storage 버킷이 설정되지 않았습니다. 관리자에게 문의하세요.';
+            } else if (error.message.includes('파일을 찾을 수 없습니다')) {
+                errorMessage = '파일을 찾을 수 없습니다. 파일이 삭제되었을 수 있습니다.';
+            }
+            
+            this.showNotification(errorMessage, 'error');
         }
     }
 
