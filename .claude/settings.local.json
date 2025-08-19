@@ -8,7 +8,9 @@
       "WebFetch(domain:ngrok.com)",
       "Bash(python:*)",
       "WebFetch(domain:developers.cloudflare.com)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(mkdir:*)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []

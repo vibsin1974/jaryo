@@ -12,17 +12,6 @@
         <header>
             <h1>📚 자료실 관리 시스템</h1>
             <p>파일과 문서를 효율적으로 관리하세요</p>
-            <div id="authSection" class="auth-section">
-                <div id="authButtons" class="auth-buttons">
-                    <button id="loginBtn" class="auth-btn">🔑 로그인</button>
-                    <button id="signupBtn" class="auth-btn">👤 회원가입</button>
-                </div>
-                <div id="userInfo" class="user-info" style="display: none;">
-                    <span id="userEmail"></span>
-                    <span id="syncStatus" class="sync-status online">🟢 온라인</span>
-                    <button id="logoutBtn" class="auth-btn">🚪 로그아웃</button>
-                </div>
-            </div>
         </header>
 
         <div class="search-section">
@@ -38,48 +27,6 @@
             <button id="searchBtn">🔍 검색</button>
         </div>
 
-        <div class="form-section">
-            <h2>📁 새 자료 추가</h2>
-            <form id="fileForm">
-                <div class="form-group">
-                    <label for="fileTitle">제목 *</label>
-                    <input type="text" id="fileTitle" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="fileDescription">설명</label>
-                    <textarea id="fileDescription" rows="3"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="fileCategory">카테고리 *</label>
-                    <select id="fileCategory" required>
-                        <option value="">카테고리 선택</option>
-                        <option value="문서">문서</option>
-                        <option value="이미지">이미지</option>
-                        <option value="동영상">동영상</option>
-                        <option value="프레젠테이션">프레젠테이션</option>
-                        <option value="기타">기타</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="fileUpload">파일 첨부</label>
-                    <input type="file" id="fileUpload" multiple>
-                    <small>여러 파일을 선택할 수 있습니다</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="fileTags">태그</label>
-                    <input type="text" id="fileTags" placeholder="쉼표로 구분하여 입력 (예: 중요, 업무, 프로젝트)">
-                </div>
-                
-                <div class="form-buttons">
-                    <button type="submit" id="submitBtn">📤 추가</button>
-                    <button type="button" id="cancelBtn">❌ 취소</button>
-                </div>
-            </form>
-        </div>
 
         <div class="list-section">
             <div class="list-header">
@@ -93,87 +40,34 @@
                 </div>
             </div>
             
-            <div id="fileList" class="file-list">
-                <div class="empty-state">
-                    <p>📂 등록된 자료가 없습니다. 새 자료를 추가해보세요!</p>
-                </div>
+            <div class="board-container">
+                <table class="board-table" id="boardTable">
+                    <thead>
+                        <tr>
+                            <th class="col-no">번호</th>
+                            <th class="col-category">카테고리</th>
+                            <th class="col-title">제목</th>
+                            <th class="col-attachment">첨부</th>
+                            <th class="col-date">등록일</th>
+                            <th class="col-actions">다운로드</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileList">
+                        <tr class="empty-state">
+                            <td colspan="6">📂 등록된 자료가 없습니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="pagination" style="display: none;">
+                <button id="prevPage" class="page-btn" disabled>◀ 이전</button>
+                <span id="pageInfo">1 / 1</span>
+                <button id="nextPage" class="page-btn" disabled>다음 ▶</button>
             </div>
         </div>
     </div>
 
-    <!-- 인증 모달 -->
-    <div id="authModal" class="modal">
-        <div class="modal-content">
-            <h2 id="authModalTitle">🔑 로그인</h2>
-            <form id="authForm">
-                <div class="form-group">
-                    <label for="authEmail">이메일 *</label>
-                    <input type="email" id="authEmail" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="authPassword">비밀번호 *</label>
-                    <input type="password" id="authPassword" required>
-                </div>
-                
-                <div class="form-group" id="confirmPasswordGroup" style="display: none;">
-                    <label for="authConfirmPassword">비밀번호 확인 *</label>
-                    <input type="password" id="authConfirmPassword">
-                </div>
-                
-                <div class="form-buttons">
-                    <button type="submit" id="authSubmitBtn">🔑 로그인</button>
-                    <button type="button" id="authCancelBtn">❌ 취소</button>
-                </div>
-                
-                <div class="auth-switch">
-                    <p id="authSwitchText">계정이 없으신가요? <a href="#" id="authSwitchLink">회원가입하기</a></p>
-                </div>
-            </form>
-            <div id="authLoading" class="loading" style="display: none;">
-                <p>처리 중...</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- 수정 모달 -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <h2>✏️ 자료 수정</h2>
-            <form id="editForm">
-                <div class="form-group">
-                    <label for="editTitle">제목 *</label>
-                    <input type="text" id="editTitle" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="editDescription">설명</label>
-                    <textarea id="editDescription" rows="3"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label for="editCategory">카테고리 *</label>
-                    <select id="editCategory" required>
-                        <option value="문서">문서</option>
-                        <option value="이미지">이미지</option>
-                        <option value="동영상">동영상</option>
-                        <option value="프레젠테이션">프레젠테이션</option>
-                        <option value="기타">기타</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="editTags">태그</label>
-                    <input type="text" id="editTags" placeholder="쉼표로 구분하여 입력">
-                </div>
-                
-                <div class="form-buttons">
-                    <button type="submit">💾 저장</button>
-                    <button type="button" id="closeModal">❌ 취소</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <script src="supabase-config.js"></script>
     <script src="script.js"></script>
