@@ -433,7 +433,14 @@ class FileManager {
 
     // localStorage 폴백 메서드들
     addFileLocally(fileData) {
-        this.files.push(fileData);
+        // 로컬 저장시에도 올바른 컬럼명 사용
+        const localFileData = {
+            ...fileData,
+            created_at: fileData.created_at || new Date().toISOString(),
+            updated_at: fileData.updated_at || new Date().toISOString()
+        };
+        
+        this.files.push(localFileData);
         this.saveFiles();
         this.renderFiles();
         this.updateEmptyState();
@@ -634,8 +641,8 @@ class FileManager {
             category,
             tags,
             files: [],
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         };
 
         if (fileInput.files.length > 0) {
@@ -721,7 +728,7 @@ class FileManager {
                 break;
             case 'date':
             default:
-                sortedFiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                sortedFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 break;
         }
 
@@ -734,8 +741,8 @@ class FileManager {
     }
 
     createFileHTML(file) {
-        const createdDate = new Date(file.createdAt).toLocaleDateString('ko-KR');
-        const updatedDate = new Date(file.updatedAt).toLocaleDateString('ko-KR');
+        const createdDate = new Date(file.created_at).toLocaleDateString('ko-KR');
+        const updatedDate = new Date(file.updated_at).toLocaleDateString('ko-KR');
         const tagsHTML = file.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
         const filesHTML = file.files.length > 0 ? 
             `<div class="file-attachments">
@@ -916,7 +923,7 @@ class FileManager {
                 break;
             case 'date':
             default:
-                sortedFiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                sortedFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 break;
         }
 
@@ -985,7 +992,14 @@ class FileManager {
     loadFiles() {
         try {
             const stored = localStorage.getItem('fileManagerData');
-            return stored ? JSON.parse(stored) : [];
+            const files = stored ? JSON.parse(stored) : [];
+            
+            // 기존 localStorage 데이터의 호환성을 위해 컬럼명 변환
+            return files.map(file => ({
+                ...file,
+                created_at: file.created_at || file.createdAt || new Date().toISOString(),
+                updated_at: file.updated_at || file.updatedAt || new Date().toISOString()
+            }));
         } catch (error) {
             console.error('파일 데이터를 불러오는 중 오류가 발생했습니다:', error);
             return [];
