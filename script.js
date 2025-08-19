@@ -69,6 +69,15 @@ class FileManager {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
 
+    // 파일 확장자 추출 (안전한 형태로)
+    getFileExtension(fileName) {
+        const lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex > 0 && lastDotIndex < fileName.length - 1) {
+            return fileName.substring(lastDotIndex).toLowerCase();
+        }
+        return ''; // 확장자가 없는 경우
+    }
+
     // 인증 관련 메서드들
     async initializeAuth() {
         try {
@@ -511,9 +520,10 @@ class FileManager {
                     const response = await fetch(attachment.data);
                     const blob = await response.blob();
                     
-                    // 파일 경로 생성 (사용자별/파일ID별 폴더 구조)
-                    const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${attachment.name}`;
-                    const filePath = `${this.currentUser.id}/${fileId}/${fileName}`;
+                    // 안전한 파일명 생성 (고유한 이름으로 저장, 원본명은 DB에 저장)
+                    const fileExtension = this.getFileExtension(attachment.name);
+                    const safeFileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}${fileExtension}`;
+                    const filePath = `${this.currentUser.id}/${fileId}/${safeFileName}`;
                     
                     // Supabase Storage에 업로드
                     const uploadResult = await SupabaseHelper.uploadFile(blob, filePath);
