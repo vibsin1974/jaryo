@@ -122,12 +122,19 @@ const SupabaseHelper = {
     async addFile(fileData, userId) {
         if (!supabase) throw new Error('Supabase가 초기화되지 않았습니다.');
         
+        // 데이터베이스 스키마에 맞는 필드만 추출
+        const dbFileData = {
+            title: fileData.title,
+            description: fileData.description || '',
+            category: fileData.category,
+            tags: fileData.tags || [],
+            user_id: userId
+            // created_at, updated_at은 데이터베이스에서 자동 생성
+        };
+        
         const { data, error } = await supabase
             .from('files')
-            .insert([{
-                ...fileData,
-                user_id: userId
-            }])
+            .insert([dbFileData])
             .select()
             .single();
             
@@ -139,12 +146,18 @@ const SupabaseHelper = {
     async updateFile(id, updates, userId) {
         if (!supabase) throw new Error('Supabase가 초기화되지 않았습니다.');
         
+        // 데이터베이스 스키마에 맞는 필드만 추출
+        const dbUpdates = {
+            title: updates.title,
+            description: updates.description,
+            category: updates.category,
+            tags: updates.tags || []
+            // updated_at은 트리거에 의해 자동 업데이트됨
+        };
+        
         const { data, error } = await supabase
             .from('files')
-            .update({
-                ...updates,
-                updated_at: new Date().toISOString()
-            })
+            .update(dbUpdates)
             .eq('id', id)
             .eq('user_id', userId)
             .select()

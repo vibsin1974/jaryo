@@ -433,11 +433,12 @@ class FileManager {
 
     // localStorage 폴백 메서드들
     addFileLocally(fileData) {
-        // 로컬 저장시에도 올바른 컬럼명 사용
+        // 로컬 저장용 데이터 생성 (ID와 타임스탬프 추가)
         const localFileData = {
+            id: this.generateId(),
             ...fileData,
-            created_at: fileData.created_at || new Date().toISOString(),
-            updated_at: fileData.updated_at || new Date().toISOString()
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
         };
         
         this.files.push(localFileData);
@@ -445,6 +446,7 @@ class FileManager {
         this.renderFiles();
         this.updateEmptyState();
         this.showNotification('새 자료가 성공적으로 추가되었습니다! (로컬 저장)', 'success');
+        this.clearForm(); // 폼 초기화
     }
 
     updateFileLocally(id, updates) {
@@ -635,14 +637,11 @@ class FileManager {
         }
 
         const fileData = {
-            id: this.generateId(),
             title,
             description,
             category,
             tags,
-            files: [],
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            files: [] // 첨부파일 임시 저장용 (Supabase 전송시 제외됨)
         };
 
         if (fileInput.files.length > 0) {
