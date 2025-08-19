@@ -915,7 +915,8 @@ class FileManager {
                     document.body.removeChild(link);
                 }
             }
-            this.showNotification(`${file.files.length}개의 파일이 다운로드되었습니다!`, 'success');
+            const fileNames = file.files.map(f => f.original_name || f.name).join(', ');
+            this.showNotification(`파일 다운로드 완료: ${fileNames}`, 'success');
         } catch (error) {
             console.error('파일 다운로드 오류:', error);
             this.showNotification('파일 다운로드 중 오류가 발생했습니다.', 'error');
@@ -994,33 +995,23 @@ class FileManager {
     }
 
     showNotification(message, type = 'info') {
+        // 기존 알림이 있으면 제거
+        const existingNotification = document.querySelector('.notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
         const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${type === 'success' ? '#48bb78' : '#667eea'};
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 1001;
-            animation: slideIn 0.3s ease;
-            max-width: 300px;
-            word-wrap: break-word;
-        `;
+        notification.className = `notification ${type}`;
         notification.textContent = message;
         
         document.body.appendChild(notification);
         
+        // 3초 후 자동 제거
         setTimeout(() => {
-            notification.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
+            if (notification.parentNode) {
+                notification.remove();
+            }
         }, 3000);
     }
 

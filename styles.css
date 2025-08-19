@@ -158,10 +158,14 @@ header p {
 .read-only-badge {
     background: #74b9ff;
     color: white;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 12px;
+    border-radius: 15px;
     font-size: 0.8em;
     font-weight: 500;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
 }
 
 .sync-status {
@@ -398,6 +402,11 @@ header p {
     color: #666;
     margin-bottom: 10px;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+.file-meta span {
+    white-space: nowrap;
 }
 
 .file-description {
@@ -426,6 +435,8 @@ header p {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
+    margin-top: 10px;
 }
 
 .file-actions button {
@@ -621,5 +632,79 @@ header p {
     
     .guest-login-btn {
         margin-top: 10px;
+    }
+    
+    .notification {
+        left: 10px;
+        right: 10px;
+        top: 10px;
+        max-width: none;
+        margin: 0;
+    }
+    
+    .file-meta {
+        gap: 8px;
+    }
+    
+    .file-meta span {
+        font-size: 0.8rem;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+}
+
+/* 알림 메시지 스타일 */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    max-width: 400px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s;
+    animation-fill-mode: forwards;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.notification.success {
+    background: linear-gradient(135deg, #48bb78, #38a169);
+    border-left: 4px solid #2f855a;
+}
+
+.notification.error {
+    background: linear-gradient(135deg, #f56565, #e53e3e);
+    border-left: 4px solid #c53030;
+}
+
+.notification.info {
+    background: linear-gradient(135deg, #4299e1, #3182ce);
+    border-left: 4px solid #2c5282;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
     }
 }
