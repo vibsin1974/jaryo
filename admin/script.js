@@ -975,28 +975,44 @@ class FileManager {
         const tbody = document.getElementById('fileList');
         const sortBy = document.getElementById('sortBy').value;
         
-        let sortedFiles = [...this.files];
+        // 검색 및 필터 적용 (메인 페이지와 동일하게)
+        const searchTerm = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase().trim() : '';
+        const categoryFilter = document.getElementById('categoryFilter') ? document.getElementById('categoryFilter').value : '';
         
-        switch (sortBy) {
-            case 'title':
-                sortedFiles.sort((a, b) => a.title.localeCompare(b.title));
-                break;
-            case 'category':
-                sortedFiles.sort((a, b) => a.category.localeCompare(b.category));
-                break;
-            case 'date':
-            default:
-                sortedFiles.sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt));
-                break;
+        let filteredFiles = [...this.files];
+        
+        if (searchTerm) {
+            filteredFiles = filteredFiles.filter(file => 
+                file.title.toLowerCase().includes(searchTerm) ||
+                file.description.toLowerCase().includes(searchTerm) ||
+                (file.tags && file.tags.some(tag => tag.toLowerCase().includes(searchTerm)))
+            );
         }
+        
+        if (categoryFilter) {
+            filteredFiles = filteredFiles.filter(file => file.category === categoryFilter);
+        }
+        
+        // 정렬
+        const sortedFiles = filteredFiles.sort((a, b) => {
+            switch (sortBy) {
+                case 'title':
+                    return a.title.localeCompare(b.title);
+                case 'category':
+                    return a.category.localeCompare(b.category);
+                case 'date':
+                default:
+                    return new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt);
+            }
+        });
 
-        this.allFiles = sortedFiles; // 전체 파일 목록 저장
+        this.allFiles = sortedFiles;
         this.updatePagination();
         
         if (sortedFiles.length === 0) {
             tbody.innerHTML = `
                 <tr class="empty-state">
-                    <td colspan="6">📂 등록된 자료가 없습니다. 새 자료를 추가해보세요!</td>
+                    <td colspan="6">📂 조건에 맞는 자료가 없습니다.</td>
                 </tr>
             `;
             return;
@@ -1026,7 +1042,7 @@ class FileManager {
                 </td>
                 <td class="col-title">
                     <div class="board-title" onclick="fileManager.viewFile('${file.id}')">
-                        <strong>${this.escapeHtml(file.title)}</strong>
+                        ${this.escapeHtml(file.title)}
                         ${file.description ? `<br><small style="color: #6b7280; font-weight: normal;">${this.escapeHtml(file.description.substring(0, 80))}${file.description.length > 80 ? '...' : ''}</small>` : ''}
                         ${file.tags && file.tags.length > 0 ? 
                             `<br><div style="margin-top: 4px;">${file.tags.map(tag => `<span style="display: inline-block; background: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; margin-right: 4px;">#${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''
@@ -1035,9 +1051,15 @@ class FileManager {
                 </td>
                 <td class="col-attachment">
                     ${hasAttachments ? 
-                        `<div class="attachment-icons" title="${file.files.length}개 파일">${file.files.map((f, index) => 
-                            `<span class="attachment-icon-clickable" onclick="fileManager.downloadSingleFile('${file.id}', ${index})" title="${f.name || f.original_name || '파일'}">${this.getFileIcon(f.name || f.original_name || 'unknown')}</span>`
-                        ).join(' ')}</div>` : 
+                        `<div class="attachment-icons">${file.files.map((f, index) => 
+                            `<div class="attachment-file-item" onclick="fileManager.downloadSingleFile('${file.id}', ${index})" title="클릭하여 다운로드">
+                                <span class="attachment-file-icon">${this.getFileIcon(f.name || f.original_name || 'unknown')}</span>
+                                <div class="attachment-file-info">
+                                    <div class="attachment-file-name">${this.escapeHtml(f.name || f.original_name || '파일')}</div>
+                                    <div class="attachment-file-size">${this.formatFileSize(f.size || 0)}</div>
+                                </div>
+                            </div>`
+                        ).join('')}</div>` : 
                         `<span class="no-attachment">-</span>`
                     }
                 </td>
@@ -1104,23 +1126,23 @@ class FileManager {
 
     // 페이지네이션 관련 함수들
     updatePagination() {
+        const totalPages = Math.max(1, Math.ceil(this.allFiles.length / 10));
         const pagination = document.getElementById('pagination');
         const prevBtn = document.getElementById('prevPage');
         const nextBtn = document.getElementById('nextPage');
         const pageInfo = document.getElementById('pageInfo');
         
-        const totalFiles = this.allFiles.length;
-        const itemsPerPage = 10;
-        const totalPages = Math.ceil(totalFiles / itemsPerPage);
+        // 항상 페이지네이션을 표시
+        if (pagination) pagination.style.display = 'flex';
         
-        if (totalPages <= 1) {
-            pagination.style.display = 'none';
-        } else {
-            pagination.style.display = 'flex';
-            prevBtn.disabled = this.currentPage <= 1;
-            nextBtn.disabled = this.currentPage >= totalPages;
-            pageInfo.textContent = `${this.currentPage} / ${totalPages}`;
-        }
+        // 페이지 버튼 상태 업데이트
+        if (prevBtn) prevBtn.disabled = this.currentPage <= 1;
+        if (nextBtn) nextBtn.disabled = this.currentPage >= totalPages || this.allFiles.length === 0;
+        
+        // 페이지 정보 표시 (아이템이 없어도 1/1로 표시)
+        const displayTotalPages = this.allFiles.length === 0 ? 1 : totalPages;
+        const displayCurrentPage = this.allFiles.length === 0 ? 1 : this.currentPage;
+        if (pageInfo) pageInfo.textContent = `${displayCurrentPage} / ${displayTotalPages}`;
     }
 
     goToPrevPage() {
@@ -1145,22 +1167,141 @@ class FileManager {
     viewFile(id) {
         const file = this.files.find(f => f.id === id);
         if (!file) return;
+
+        this.showDetailView(file);
+    }
+
+    showDetailView(file) {
+        // 메인 컨테이너 숨기기
+        const container = document.querySelector('.container');
+        container.style.display = 'none';
         
-        // 간단한 알림으로 파일 정보 표시
-        let info = `📄 ${file.title}\n\n`;
-        info += `📁 카테고리: ${file.category}\n`;
-        info += `📅 등록일: ${new Date(file.created_at || file.createdAt).toLocaleDateString('ko-KR')}\n`;
-        if (file.description) info += `📝 설명: ${file.description}\n`;
-        if (file.tags && file.tags.length > 0) info += `🏷️ 태그: ${file.tags.join(', ')}\n`;
-        if (file.files && file.files.length > 0) {
-            info += `\n📎 첨부파일 (${file.files.length}개):\n`;
-            file.files.forEach((attachment, index) => {
-                const icon = this.getFileIcon(attachment.name || attachment.original_name || 'unknown');
-                info += `  ${index + 1}. ${icon} ${attachment.name || attachment.original_name || '파일'}\n`;
-            });
+        // 상세보기 컨테이너 생성
+        const detailContainer = document.createElement('div');
+        detailContainer.className = 'detail-container';
+        detailContainer.id = 'detailContainer';
+        
+        const createdDate = new Date(file.created_at || file.createdAt).toLocaleDateString('ko-KR');
+        const updatedDate = new Date(file.updated_at || file.updatedAt).toLocaleDateString('ko-KR');
+        
+        detailContainer.innerHTML = `
+            <div class="container">
+                <header>
+                    <h1>📋 자료 상세보기</h1>
+                    <p>등록된 자료의 상세 정보를 확인하고 관리하세요</p>
+                </header>
+
+                <div class="detail-section">
+                    <div class="detail-header">
+                        <h2>📄 ${this.escapeHtml(file.title)}</h2>
+                        <div class="detail-actions">
+                            <button class="edit-detail-btn" onclick="fileManager.editFileFromDetail('${file.id}')" title="수정">
+                                ✏️ 수정
+                            </button>
+                            <button class="delete-detail-btn" onclick="fileManager.deleteFileFromDetail('${file.id}')" title="삭제">
+                                🗑️ 삭제
+                            </button>
+                            <button class="back-btn" onclick="fileManager.hideDetailView()">
+                                ← 목록으로 돌아가기
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-content">
+                        <div class="detail-info">
+                            <div class="info-group">
+                                <label>📂 카테고리</label>
+                                <div class="info-value">
+                                    <span class="category-badge category-${file.category}">${file.category}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="info-group">
+                                <label>📝 설명</label>
+                                <div class="info-value description">
+                                    ${file.description ? this.escapeHtml(file.description) : '설명이 없습니다.'}
+                                </div>
+                            </div>
+                            
+                            ${file.tags && file.tags.length > 0 ? `
+                            <div class="info-group">
+                                <label>🏷️ 태그</label>
+                                <div class="info-value">
+                                    <div class="tags-container">
+                                        ${file.tags.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('')}
+                                    </div>
+                                </div>
+                            </div>` : ''}
+                            
+                            ${file.files && file.files.length > 0 ? `
+                            <div class="info-group">
+                                <label>📎 첨부파일 (${file.files.length}개)</label>
+                                <div class="info-value">
+                                    <div class="attachments-list">
+                                        ${file.files.map((f, index) => `
+                                            <div class="attachment-item">
+                                                <span class="attachment-icon">${this.getFileIcon(f.name || f.original_name || 'unknown')}</span>
+                                                <span class="attachment-name">${this.escapeHtml(f.name || f.original_name || '파일')}</span>
+                                                <button class="download-single-btn" onclick="fileManager.downloadSingleFile('${file.id}', ${index})" title="다운로드">
+                                                    📥 다운로드
+                                                </button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    <div class="attachment-actions">
+                                        <button class="download-all-btn" onclick="fileManager.downloadFiles('${file.id}')" title="모든 파일 다운로드">
+                                            📦 모든 파일 다운로드
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>` : `
+                            <div class="info-group">
+                                <label>📎 첨부파일</label>
+                                <div class="info-value no-files">
+                                    첨부된 파일이 없습니다.
+                                </div>
+                            </div>`}
+                            
+                            <div class="info-group">
+                                <label>📅 등록일</label>
+                                <div class="info-value">${createdDate}</div>
+                            </div>
+                            
+                            ${createdDate !== updatedDate ? `
+                            <div class="info-group">
+                                <label>🔄 수정일</label>
+                                <div class="info-value">${updatedDate}</div>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(detailContainer);
+    }
+
+    hideDetailView() {
+        const detailContainer = document.getElementById('detailContainer');
+        if (detailContainer) {
+            detailContainer.remove();
         }
         
-        alert(info);
+        // 메인 컨테이너 다시 보이기
+        const container = document.querySelector('.container');
+        container.style.display = 'block';
+    }
+
+    editFileFromDetail(id) {
+        this.hideDetailView();
+        this.editFile(id);
+    }
+
+    async deleteFileFromDetail(id) {
+        if (confirm('정말로 이 자료를 삭제하시겠습니까?')) {
+            await this.deleteFile(id);
+            this.hideDetailView();
+        }
     }
 
     editFile(id) {
@@ -1331,49 +1472,11 @@ class FileManager {
         const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
         const categoryFilter = document.getElementById('categoryFilter').value;
         
-        let filteredFiles = this.files;
-        
-        if (searchTerm) {
-            filteredFiles = filteredFiles.filter(file => 
-                file.title.toLowerCase().includes(searchTerm) ||
-                file.description.toLowerCase().includes(searchTerm) ||
-                file.tags.some(tag => tag.toLowerCase().includes(searchTerm))
-            );
-        }
-        
-        if (categoryFilter) {
-            filteredFiles = filteredFiles.filter(file => file.category === categoryFilter);
-        }
-        
-        this.renderFilteredFiles(filteredFiles);
+        // 검색 시 첫 페이지로 리셋
+        this.currentPage = 1;
+        this.renderFiles();
     }
 
-    renderFilteredFiles(files) {
-        const container = document.getElementById('fileList');
-        const sortBy = document.getElementById('sortBy').value;
-        
-        let sortedFiles = [...files];
-        
-        switch (sortBy) {
-            case 'title':
-                sortedFiles.sort((a, b) => a.title.localeCompare(b.title));
-                break;
-            case 'category':
-                sortedFiles.sort((a, b) => a.category.localeCompare(b.category));
-                break;
-            case 'date':
-            default:
-                sortedFiles.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                break;
-        }
-
-        if (sortedFiles.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>🔍 검색 결과가 없습니다. 다른 키워드로 검색해보세요!</p></div>';
-            return;
-        }
-
-        container.innerHTML = sortedFiles.map(file => this.createFileHTML(file)).join('');
-    }
 
     clearForm() {
         document.getElementById('fileForm').reset();

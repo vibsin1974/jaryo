@@ -385,7 +385,7 @@ header p {
 }
 
 .board-table th {
-    padding: 15px 12px;
+    padding: 12px;
     text-align: center;
     font-weight: 600;
     font-size: 0.95rem;
@@ -410,17 +410,18 @@ header p {
 }
 
 .board-table td {
-    padding: 12px;
+    padding: 8px 12px;
     text-align: center;
     vertical-align: middle;
     font-size: 0.9rem;
+    line-height: 1.4;
 }
 
 /* 컬럼 너비 설정 */
 .col-no { width: 60px; }
 .col-category { width: 100px; }
 .col-title { width: auto; min-width: 200px; text-align: left; }
-.col-attachment { width: 80px; }
+.col-attachment { width: 220px; text-align: center; }
 .col-date { width: 120px; }
 .col-actions { width: 150px; }
 
@@ -431,7 +432,7 @@ header p {
     text-decoration: none;
     cursor: pointer;
     display: block;
-    padding: 8px;
+    padding: 4px 6px;
     border-radius: 4px;
     transition: all 0.2s ease;
 }
@@ -465,16 +466,61 @@ header p {
 
 .attachment-icons {
     display: flex;
-    gap: 2px;
-    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
     align-items: center;
-    flex-wrap: wrap;
-    font-size: 1rem;
+    font-size: 0.85rem;
     line-height: 1.2;
+    max-height: 100px;
+    overflow-y: auto;
+    padding: 2px;
 }
 
-.attachment-icons span {
-    display: inline-block;
+.attachment-file-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    padding: 3px 4px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.attachment-file-item:hover {
+    background-color: #f0f9ff;
+}
+
+.attachment-file-icon {
+    font-size: 1.1rem;
+    width: auto;
+    text-align: left;
+    flex-shrink: 0;
+    margin-right: 1px;
+}
+
+.attachment-file-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+    margin-left: 0;
+}
+
+.attachment-file-name {
+    font-weight: 500;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.8rem;
+}
+
+.attachment-file-size {
+    color: #6b7280;
+    font-size: 0.7rem;
 }
 
 .attachment-icon-clickable {
@@ -496,15 +542,15 @@ header p {
 /* 액션 버튼 */
 .action-buttons {
     display: flex;
-    gap: 5px;
+    gap: 3px;
     justify-content: center;
     align-items: center;
 }
 
 .action-btn {
-    padding: 6px 12px;
+    padding: 4px 8px;
     border: none;
-    border-radius: 4px;
+    border-radius: 3px;
     font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -547,6 +593,298 @@ header p {
     text-align: center;
     color: #6b7280;
     font-size: 1.1rem;
+}
+
+/* 상세보기 페이지 스타일 */
+.detail-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.detail-section {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.detail-header h2 {
+    color: #4a5568;
+    font-size: 2rem;
+    margin: 0;
+    flex: 1;
+}
+
+.detail-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.edit-detail-btn {
+    padding: 10px 20px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.edit-detail-btn:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.delete-detail-btn {
+    padding: 10px 20px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.delete-detail-btn:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.back-btn {
+    padding: 12px 24px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.back-btn:hover {
+    background: #5a67d8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.detail-content {
+    display: grid;
+    gap: 20px;
+}
+
+.detail-info {
+    display: grid;
+    gap: 25px;
+}
+
+.info-group {
+    display: grid;
+    gap: 10px;
+}
+
+.info-group label {
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-value {
+    padding: 15px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.info-value.description {
+    min-height: 80px;
+    white-space: pre-wrap;
+}
+
+.info-value.no-files {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: none;
+}
+
+.attachments-list {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.attachment-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.attachment-icon {
+    font-size: 1.5rem;
+    min-width: 30px;
+    text-align: center;
+}
+
+.attachment-name {
+    flex: 1;
+    font-weight: 500;
+    color: #374151;
+    word-break: break-all;
+}
+
+.download-single-btn {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.download-single-btn:hover {
+    background: #059669;
+    transform: scale(1.05);
+}
+
+.attachment-actions {
+    padding-top: 15px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+.download-all-btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.download-all-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .detail-section {
+        padding: 20px;
+        margin: 10px;
+        border-radius: 10px;
+    }
+    
+    .detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .detail-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .detail-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+    
+    .detail-actions button {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .back-btn {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        margin-top: 10px;
+    }
+    
+    .attachment-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .download-single-btn {
+        align-self: stretch;
+        text-align: center;
+    }
 }
 
 /* 파일 업로드 영역 */
