@@ -100,14 +100,19 @@ const SupabaseHelper = {
     async getFiles(userId) {
         if (!supabase) throw new Error('Supabase가 초기화되지 않았습니다.');
         
-        const { data, error } = await supabase
+        let query = supabase
             .from('files')
             .select(`
                 *,
                 file_attachments (*)
-            `)
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
+            `);
+            
+        // 공개 파일 요청이 아닌 경우에만 사용자 ID로 필터링
+        if (userId !== 'public') {
+            query = query.eq('user_id', userId);
+        }
+        
+        const { data, error } = await query.order('created_at', { ascending: false });
             
         if (error) throw error;
         return data;

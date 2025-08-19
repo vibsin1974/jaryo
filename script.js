@@ -80,6 +80,9 @@ class FileManager {
                 this.setupRealtimeSubscription();
             } else {
                 this.updateAuthUI(false);
+                // 게스트 모드: 공개 파일 로드
+                await this.loadPublicFiles();
+                this.showGuestMode();
             }
 
             setupAuthListener((event, session) => {
@@ -91,8 +94,8 @@ class FileManager {
                 } else if (event === 'SIGNED_OUT') {
                     this.currentUser = null;
                     this.updateAuthUI(false);
-                    this.files = [];
-                    this.renderFiles();
+                    this.loadPublicFiles();
+                    this.showGuestMode();
                     this.cleanupRealtimeSubscription();
                 }
             });
@@ -105,15 +108,19 @@ class FileManager {
         const authButtons = document.getElementById('authButtons');
         const userInfo = document.getElementById('userInfo');
         const userEmail = document.getElementById('userEmail');
+        const formSection = document.querySelector('.form-section');
 
         if (isAuthenticated && this.currentUser) {
             authButtons.style.display = 'none';
             userInfo.style.display = 'flex';
             userEmail.textContent = this.currentUser.email;
+            formSection.style.display = 'block';
             this.updateSyncStatus();
+            this.hideGuestMode();
         } else {
             authButtons.style.display = 'flex';
             userInfo.style.display = 'none';
+            formSection.style.display = 'none';
         }
     }
 
@@ -256,6 +263,53 @@ class FileManager {
         offlineNotice.className = 'offline-mode';
         offlineNotice.innerHTML = '⚠️ 오프라인 모드: 로컬 저장소를 사용합니다. Supabase 설정을 확인해주세요.';
         container.insertBefore(offlineNotice, container.firstChild.nextSibling);
+    }
+
+    // 게스트 모드 관련
+    showGuestMode() {
+        this.hideGuestMode(); // 기존 알림 제거
+        const container = document.querySelector('.container');
+        const guestNotice = document.createElement('div');
+        guestNotice.className = 'guest-mode';
+        guestNotice.id = 'guestModeNotice';
+        guestNotice.innerHTML = `
+            <div class="guest-mode-content">
+                <span>👤 게스트 모드 - 파일 보기 및 다운로드만 가능합니다</span>
+                <button onclick="fileManager.openAuthModal('login')" class="guest-login-btn">🔑 로그인하여 편집하기</button>
+            </div>
+        `;
+        container.insertBefore(guestNotice, container.firstChild.nextSibling);
+    }
+
+    hideGuestMode() {
+        const guestNotice = document.getElementById('guestModeNotice');
+        if (guestNotice) {
+            guestNotice.remove();
+        }
+    }
+
+    // 공개 파일 로드 (게스트용)
+    async loadPublicFiles() {
+        if (isSupabaseConfigured()) {
+            try {
+                // Supabase에서 모든 파일 로드 (RLS로 공개 파일만 접근 가능)
+                const data = await SupabaseHelper.getFiles('public');
+                this.files = data.map(file => ({
+                    ...file,
+                    files: file.file_attachments || [],
+                    isReadOnly: true
+                }));
+            } catch (error) {
+                console.error('공개 파일 로딩 오류:', error);
+                // localStorage 폴백
+                this.files = this.loadFiles().map(file => ({ ...file, isReadOnly: true }));
+            }
+        } else {
+            // 오프라인 모드: localStorage의 파일을 읽기 전용으로 로드
+            this.files = this.loadFiles().map(file => ({ ...file, isReadOnly: true }));
+        }
+        this.renderFiles();
+        this.updateEmptyState();
     }
 
     setupOnlineStatusListener() {
@@ -490,6 +544,11 @@ class FileManager {
     handleSubmit(e) {
         e.preventDefault();
         
+        if (!this.currentUser) {
+            this.showNotification('로그인이 필요합니다.', 'error');
+            return;
+        }
+        
         const title = document.getElementById('fileTitle').value.trim();
         const description = document.getElementById('fileDescription').value.trim();
         const category = document.getElementById('fileCategory').value;
@@ -637,9 +696,12 @@ class FileManager {
                 ${filesHTML}
                 
                 <div class="file-actions">
-                    <button class="edit-btn" onclick="fileManager.editFile('${file.id}')">✏️ 수정</button>
-                    <button class="delete-btn" onclick="fileManager.deleteFile('${file.id}')">🗑️ 삭제</button>
+                    ${!file.isReadOnly && this.currentUser ? `
+                        <button class="edit-btn" onclick="fileManager.editFile('${file.id}')">✏️ 수정</button>
+                        <button class="delete-btn" onclick="fileManager.deleteFile('${file.id}')">🗑️ 삭제</button>
+                    ` : ''}
                     ${file.files.length > 0 ? `<button class="download-btn" onclick="fileManager.downloadFiles('${file.id}')">💾 다운로드</button>` : ''}
+                    ${file.isReadOnly ? `<span class="read-only-badge">👁️ 읽기 전용</span>` : ''}
                 </div>
             </div>
         `;
@@ -652,8 +714,18 @@ class FileManager {
     }
 
     editFile(id) {
+        if (!this.currentUser) {
+            this.showNotification('로그인이 필요합니다.', 'error');
+            return;
+        }
+
         const file = this.files.find(f => f.id === id);
         if (!file) return;
+
+        if (file.isReadOnly) {
+            this.showNotification('읽기 전용 파일은 편집할 수 없습니다.', 'error');
+            return;
+        }
 
         this.currentEditId = id;
         
@@ -697,8 +769,18 @@ class FileManager {
     }
 
     deleteFile(id) {
+        if (!this.currentUser) {
+            this.showNotification('로그인이 필요합니다.', 'error');
+            return;
+        }
+
         const file = this.files.find(f => f.id === id);
         if (!file) return;
+
+        if (file.isReadOnly) {
+            this.showNotification('읽기 전용 파일은 삭제할 수 없습니다.', 'error');
+            return;
+        }
 
         if (confirm(`"${file.title}" 자료를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
             this.deleteFileFromSupabase(id);
