@@ -730,15 +730,30 @@ app.get('/api/download/:id/:attachmentId', async (req, res) => {
                 const encodedName = encodeURIComponent(originalName);
                 
                 // RFC 5987을 준수하는 헤더 설정 (한글 파일명 지원)
+                const stat = fs.statSync(filePath);
                 res.setHeader('Content-Disposition', 
                     `attachment; filename*=UTF-8''${encodedName}`);
                 res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
-                res.setHeader('Content-Length', row.file_size || fs.statSync(filePath).size);
+                res.setHeader('Content-Length', stat.size);
+                res.setHeader('Accept-Ranges', 'bytes');
+                res.setHeader('Cache-Control', 'public, max-age=0');
                 
+                // 클라이언트 연결 끊김 감지
+                res.on('close', () => {
+                    if (!res.headersSent) {
+                        console.log('📁 다운로드 취소됨:', originalName);
+                    }
+                });
+
                 // 원본 파일명으로 다운로드
                 res.download(filePath, originalName, (err) => {
                     if (err) {
-                        console.error('📁 다운로드 오류:', err);
+                        // ECONNABORTED는 클라이언트가 연결을 끊은 경우이므로 로그만 남김
+                        if (err.code === 'ECONNABORTED') {
+                            console.log('📁 다운로드 중단됨 (클라이언트 연결 해제):', originalName);
+                        } else {
+                            console.error('📁 다운로드 오류:', err);
+                        }
                     } else {
                         console.log('📁 다운로드 완료:', originalName);
                     }
