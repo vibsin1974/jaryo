@@ -39,12 +39,17 @@
       "mcp__sequential-thinking__sequentialthinking",
       "Bash(git commit:*)",
       "Bash(chmod:*)",
-      "Bash(./deploy-to-nas.sh:*)"
+      "Bash(./deploy-to-nas.sh:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(cat:*)",
+      "Bash(./deploy-manual.sh)"
     ],
     "deny": [],
     "ask": [],
     "additionalDirectories": [
-      "C:\\c\\Users\\COMTREE\\claude_code"
+      "C:\\c\\Users\\COMTREE\\claude_code",
+      "C:\\Users\\COMTREE\\.ssh"
     ]
   },
   "default-mode": "plan"
