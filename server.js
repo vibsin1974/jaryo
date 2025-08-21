@@ -766,23 +766,28 @@ app.use((req, res) => {
     });
 });
 
-// 서버 시작
-app.listen(PORT, () => {
-    console.log(`🚀 자료실 서버가 포트 ${PORT}에서 실행중입니다.`);
-    console.log(`📱 Admin 페이지: http://localhost:${PORT}/admin/index.html`);
-    console.log(`🌐 Main 페이지: http://localhost:${PORT}/index.html`);
-    console.log(`📊 API: http://localhost:${PORT}/api/files`);
-});
+// Vercel 서버리스 환경을 위한 export
+module.exports = app;
 
-// 프로세스 종료 시 데이터베이스 연결 종료
-process.on('SIGINT', async () => {
-    console.log('\n📝 서버를 종료합니다...');
-    await db.close();
-    process.exit(0);
-});
+// 로컬 개발 환경에서만 서버 시작
+if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        console.log(`🚀 자료실 서버가 포트 ${PORT}에서 실행중입니다.`);
+        console.log(`📱 Admin 페이지: http://localhost:${PORT}/admin/index.html`);
+        console.log(`🌐 Main 페이지: http://localhost:${PORT}/index.html`);
+        console.log(`📊 API: http://localhost:${PORT}/api/files`);
+    });
 
-process.on('SIGTERM', async () => {
-    console.log('\n📝 서버를 종료합니다...');
-    await db.close();
-    process.exit(0);
-});
+    // 프로세스 종료 시 데이터베이스 연결 종료
+    process.on('SIGINT', async () => {
+        console.log('\n📝 서버를 종료합니다...');
+        await db.close();
+        process.exit(0);
+    });
+
+    process.on('SIGTERM', async () => {
+        console.log('\n📝 서버를 종료합니다...');
+        await db.close();
+        process.exit(0);
+    });
+}
