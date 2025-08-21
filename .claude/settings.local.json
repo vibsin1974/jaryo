@@ -37,7 +37,9 @@
       "Bash(start http://localhost:8000)",
       "Bash(npm --version)",
       "mcp__sequential-thinking__sequentialthinking",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(chmod:*)",
+      "Bash(./deploy-to-nas.sh:*)"
     ],
     "deny": [],
     "ask": [],
