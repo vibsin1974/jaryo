@@ -1,5 +1,5 @@
 // Vercel Serverless 함수 핸들러
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
     // CORS 헤더 설정
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -27,7 +27,7 @@ export default function handler(req, res) {
     // 루트 경로
     if (url === '/' || url === '/api') {
         res.setHeader('Content-Type', 'text/html');
-        res.send(`
+        res.end(`
         <!DOCTYPE html>
         <html lang="ko">
         <head>
