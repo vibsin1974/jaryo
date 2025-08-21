@@ -2,6 +2,10 @@
   "version": 2,
   "routes": [
     {
+      "src": "/simple",
+      "dest": "/simple.html"
+    },
+    {
       "src": "/api/test",
       "dest": "/api/test.js"
     },
@@ -14,7 +18,7 @@
       "dest": "/api/files.js"
     },
     {
-      "src": "/(.*\\.(css|js|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot))",
+      "src": "/(.*\\.(css|js|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot|html))",
       "dest": "/$1"
     },
     {
@@ -22,8 +26,8 @@
       "dest": "/admin/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "src": "/",
+      "dest": "/simple.html"
     }
   ]
 }
