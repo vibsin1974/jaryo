@@ -44,6 +44,14 @@ app.use((req, res, next) => {
     next();
 });
 
+// CSS 파일에 대한 캐시 무효화 헤더 설정
+app.get('*.css', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+});
+
 // 정적 파일 서빙
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -731,10 +739,30 @@ app.get('/api/download/:id/:attachmentId', async (req, res) => {
                 
                 // RFC 5987을 준수하는 헤더 설정 (한글 파일명 지원)
                 const stat = fs.statSync(filePath);
+                const fileSize = stat.size;
+                
+                // Range 요청 처리
+                const range = req.headers.range;
+                let start = 0;
+                let end = fileSize - 1;
+                let statusCode = 200;
+                
+                if (range) {
+                    const parts = range.replace(/bytes=/, "").split("-");
+                    start = parseInt(parts[0], 10);
+                    end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+                    statusCode = 206; // Partial Content
+                    
+                    res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+                    res.setHeader('Content-Length', (end - start + 1));
+                } else {
+                    res.setHeader('Content-Length', fileSize);
+                }
+                
+                res.status(statusCode);
                 res.setHeader('Content-Disposition', 
                     `attachment; filename*=UTF-8''${encodedName}`);
                 res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
-                res.setHeader('Content-Length', stat.size);
                 res.setHeader('Accept-Ranges', 'bytes');
                 res.setHeader('Cache-Control', 'public, max-age=0');
                 
@@ -745,19 +773,22 @@ app.get('/api/download/:id/:attachmentId', async (req, res) => {
                     }
                 });
 
-                // 원본 파일명으로 다운로드
-                res.download(filePath, originalName, (err) => {
-                    if (err) {
-                        // ECONNABORTED는 클라이언트가 연결을 끊은 경우이므로 로그만 남김
-                        if (err.code === 'ECONNABORTED') {
-                            console.log('📁 다운로드 중단됨 (클라이언트 연결 해제):', originalName);
-                        } else {
-                            console.error('📁 다운로드 오류:', err);
-                        }
-                    } else {
-                        console.log('📁 다운로드 완료:', originalName);
+                // 스트림 기반 다운로드로 대용량 파일 지원 (Range 요청 지원)
+                const readStream = fs.createReadStream(filePath, { start, end });
+                
+                readStream.on('error', (err) => {
+                    console.error('📁 파일 읽기 오류:', err);
+                    if (!res.headersSent) {
+                        res.status(500).json({ error: '파일 읽기 실패' });
                     }
                 });
+                
+                readStream.on('end', () => {
+                    console.log('📁 다운로드 완료:', originalName);
+                });
+                
+                // 스트림을 응답에 연결
+                readStream.pipe(res);
             } else {
                 res.status(404).json({
                     success: false,
@@ -796,12 +827,15 @@ module.exports = app;
 
 // 로컬 개발 환경에서만 서버 시작
 if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
         console.log(`🚀 자료실 서버가 포트 ${PORT}에서 실행중입니다.`);
         console.log(`📱 Admin 페이지: http://localhost:${PORT}/admin/index.html`);
         console.log(`🌐 Main 페이지: http://localhost:${PORT}/index.html`);
         console.log(`📊 API: http://localhost:${PORT}/api/files`);
     });
+    
+    // 대용량 파일 다운로드를 위해 서버 타임아웃을 30분으로 설정
+    server.timeout = 1800000; // 30분 (30 * 60 * 1000ms)
 
     // 프로세스 종료 시 데이터베이스 연결 종료
     process.on('SIGINT', async () => {

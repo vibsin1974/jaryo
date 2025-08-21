@@ -343,9 +343,6 @@ class PublicFileViewer {
 
     async downloadSingleFile(fileId, attachmentIndex) {
         try {
-            // 다운로드 시작 로딩 표시
-            this.showLoading(true);
-            
             console.log('downloadSingleFile 호출됨:', fileId, attachmentIndex);
             const file = this.files.find(f => f.id === fileId);
             console.log('찾은 파일:', file);
@@ -359,70 +356,28 @@ class PublicFileViewer {
             const downloadUrl = `/api/download/${fileId}/${attachmentId}`;
             console.log('다운로드 URL:', downloadUrl);
             
-            const response = await fetch(downloadUrl, {
-                credentials: 'include'
-            });
-            console.log('응답 상태:', response.status, response.statusText);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.log('응답 오류:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            console.log('다운로드 시작...');
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            
-            // 파일명을 서버에서 전송된 정보에서 추출 (개선된 방식)
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = file.files[attachmentIndex].original_name || `download_${Date.now()}`;
-            
-            console.log('📁 다운로드 파일명 처리:', {
-                original_name: file.files[attachmentIndex].original_name,
-                content_disposition: contentDisposition,
-                default_filename: filename
-            });
-            
-            if (contentDisposition) {
-                // RFC 5987 filename* 파라미터를 우선 처리 (UTF-8 지원)
-                const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/);
-                if (filenameStarMatch) {
-                    filename = decodeURIComponent(filenameStarMatch[1]);
-                    console.log('📁 UTF-8 파일명 추출:', filename);
-                } else {
-                    // 일반 filename 파라미터 처리
-                    const filenameMatch = contentDisposition.match(/filename="?([^";\r\n]+)"?/);
-                    if (filenameMatch) {
-                        filename = filenameMatch[1];
-                        console.log('📁 기본 파일명 추출:', filename);
-                    }
-                }
-            }
-            
-            // 파일명이 여전히 비어있다면 기본값 사용
-            if (!filename || filename.trim() === '') {
-                filename = file.files[attachmentIndex].original_name || `download_${Date.now()}`;
-                console.log('📁 기본 파일명 사용:', filename);
-            }
-            
+            // 대용량 파일을 위해 직접 링크로 다운로드 (blob 사용하지 않음)
             const link = document.createElement('a');
-            link.href = url;
+            link.href = downloadUrl;
+            link.target = '_blank'; // 새 탭에서 열어 다운로드
+            
+            // 파일명 설정 (서버에서 Content-Disposition 헤더로 처리됨)
+            const filename = file.files[attachmentIndex].original_name || `download_${Date.now()}`;
             link.download = filename;
+            
+            // 숨겨진 링크 생성 후 클릭
+            link.style.display = 'none';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
             
-            console.log('다운로드 완료');
-            this.showLoading(false);
+            console.log('📁 대용량 파일 다운로드 시작:', filename);
             
             if (arguments.length === 2) { // 단일 파일 다운로드인 경우만 알림 표시
-                this.showNotification(`파일 다운로드 완료: ${filename}`, 'success');
+                this.showNotification(`파일 다운로드 시작: ${filename}`, 'success');
             }
         } catch (error) {
             console.error('downloadSingleFile 오류:', error);
-            this.showLoading(false);
             this.showNotification('파일 다운로드 중 오류가 발생했습니다.', 'error');
         }
     }
