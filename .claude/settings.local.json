@@ -36,7 +36,8 @@
       "Bash(tasklist)",
       "Bash(start http://localhost:8000)",
       "Bash(npm --version)",
-      "mcp__sequential-thinking__sequentialthinking"
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": [],

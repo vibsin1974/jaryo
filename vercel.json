@@ -16,12 +16,41 @@
       "dest": "/api/simple.js"
     },
     {
-      "src": "/(.*\\.(html|css|js|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot))",
+      "src": "/(.*\\.(css|js|json|svg|png|jpg|jpeg|gif|ico|woff|woff2|ttf|eot|html))",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      },
       "dest": "/$1"
+    },
+    {
+      "src": "/index\\.html",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
+      },
+      "dest": "/index.html"
+    },
+    {
+      "src": "/admin/(.*)",
+      "dest": "/admin/$1"
+    },
+    {
+      "src": "^/$",
+      "dest": "/api/simple.js"
     },
     {
       "src": "/(.*)",
       "dest": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, s-maxage=86400"
+        }
+      ]
     }
   ],
   "env": {

@@ -9,16 +9,21 @@ class PublicFileViewer {
     }
 
     async init() {
+        console.log('🚀 PublicFileViewer 초기화 시작');
+        
         try {
             this.showLoading(true);
+            console.log('📡 파일 목록 로드 중...');
             await this.loadFiles();
             this.filteredFiles = [...this.files];
+            console.log(`✅ ${this.files.length}개 파일 로드 완료`);
+            
             this.bindEvents();
             this.renderFiles();
             this.updatePagination();
         } catch (error) {
-            console.error('초기화 오류:', error);
-            this.showNotification('데이터를 불러오는 중 오류가 발생했습니다.', 'error');
+            console.error('❌ 초기화 오류:', error);
+            this.showNotification('데이터를 불러오는 중 오류가 발생했습니다. 페이지를 새로고침 해주세요.', 'error');
         } finally {
             this.showLoading(false);
         }
