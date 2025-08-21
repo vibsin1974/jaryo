@@ -619,7 +619,7 @@ header p {
 /* 제목 스타일 */
 .board-title {
     color: #667eea;
-    font-weight: 500;
+    font-weight: 700;
     text-decoration: none;
     cursor: pointer;
     display: block;
