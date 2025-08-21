@@ -10,9 +10,39 @@
       "WebFetch(domain:developers.cloudflare.com)",
       "Bash(git add:*)",
       "Bash(mkdir:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(npm run init-db:*)",
+      "Bash(npm start)",
+      "Bash(set PORT=3001)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(mv:*)",
+      "Bash(true)",
+      "Bash(PORT=3001 npm start)",
+      "Bash(sqlite3:*)",
+      "Bash(PORT=3002 npm start)",
+      "Bash(taskkill:*)",
+      "Bash(rm:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_type",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_handle_dialog",
+      "mcp__playwright__browser_close",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_file_upload",
+      "mcp__playwright__browser_select_option",
+      "Bash(tasklist)",
+      "Bash(start http://localhost:8000)",
+      "Bash(npm --version)",
+      "mcp__sequential-thinking__sequentialthinking"
     ],
     "deny": [],
-    "ask": []
-  }
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\c\\Users\\COMTREE\\claude_code"
+    ]
+  },
+  "default-mode": "plan"
 }

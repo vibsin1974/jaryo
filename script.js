@@ -1,8 +1,6 @@
-class FileManager {
+class PublicFileViewer {
     constructor() {
         this.files = [];
-        this.currentEditId = null;
-        this.isOnline = navigator.onLine;
         this.currentPage = 1;
         this.itemsPerPage = 10;
         this.filteredFiles = [];
@@ -11,16 +9,23 @@ class FileManager {
     }
 
     async init() {
-        // 오프라인 모드로만 실행
-        this.files = this.loadFiles();
-        this.filteredFiles = [...this.files];
-        this.bindEvents();
-        this.renderFiles();
-        this.updatePagination();
+        try {
+            this.showLoading(true);
+            await this.loadFiles();
+            this.filteredFiles = [...this.files];
+            this.bindEvents();
+            this.renderFiles();
+            this.updatePagination();
+        } catch (error) {
+            console.error('초기화 오류:', error);
+            this.showNotification('데이터를 불러오는 중 오류가 발생했습니다.', 'error');
+        } finally {
+            this.showLoading(false);
+        }
     }
 
     bindEvents() {
-        // 검색 및 정렬 이벤트만 유지
+        // 검색 및 정렬 이벤트
         document.getElementById('searchBtn').addEventListener('click', () => this.handleSearch());
         document.getElementById('searchInput').addEventListener('keyup', (e) => {
             if (e.key === 'Enter') this.handleSearch();
@@ -33,8 +38,20 @@ class FileManager {
         document.getElementById('nextPage').addEventListener('click', () => this.goToNextPage());
     }
 
-    generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    async loadFiles() {
+        try {
+            const response = await fetch('/api/files/public');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            this.files = data.data || [];
+            console.log('파일 로드 완료:', this.files.length, '개');
+        } catch (error) {
+            console.error('파일 로드 오류:', error);
+            this.files = [];
+            throw error;
+        }
     }
 
     handleSearch() {
@@ -65,7 +82,7 @@ class FileManager {
         const fileList = document.getElementById('fileList');
         const sortBy = document.getElementById('sortBy').value;
         
-        // 정렬 (관리자 페이지와 동일하게)
+        // 정렬
         const sortedFiles = [...this.filteredFiles].sort((a, b) => {
             switch (sortBy) {
                 case 'title':
@@ -74,7 +91,7 @@ class FileManager {
                     return a.category.localeCompare(b.category);
                 case 'date':
                 default:
-                    return new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt);
+                    return new Date(b.created_at) - new Date(a.created_at);
             }
         });
         
@@ -98,7 +115,7 @@ class FileManager {
     }
 
     createFileRowHTML(file, rowNumber) {
-        const createdDate = new Date(file.created_at || file.createdAt).toLocaleDateString('ko-KR');
+        const createdDate = new Date(file.created_at).toLocaleDateString('ko-KR');
         const hasAttachments = file.files && file.files.length > 0;
         
         return `
@@ -108,37 +125,47 @@ class FileManager {
                     <span class="category-badge category-${file.category}">${file.category}</span>
                 </td>
                 <td class="col-title">
-                    <div class="board-title" onclick="fileManager.viewFileInfo('${file.id}')">
+                    <div class="board-title" onclick="publicViewer.viewFileInfo('${file.id}')">
                         ${this.escapeHtml(file.title)}
                         ${file.description ? `<br><small style="color: #666; font-weight: normal;">${this.escapeHtml(file.description)}</small>` : ''}
                         ${file.tags && file.tags.length > 0 ? 
-                            `<br><div style="margin-top: 4px;">${file.tags.map(tag => `<span style="display: inline-block; background: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; margin-right: 4px;">#${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''
+                            `<br><div style="margin-top: 4px;">${this.parseJsonTags(file.tags).map(tag => `<span style="display: inline-block; background: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; margin-right: 4px;">#${this.escapeHtml(tag)}</span>`).join('')}</div>` : ''
                         }
                     </div>
                 </td>
                 <td class="col-attachment">
                     ${hasAttachments ? 
-                        `<div class="attachment-icons">${file.files.map((f, index) => 
-                            `<div class="attachment-file-item" onclick="fileManager.downloadSingleFile('${file.id}', ${index})" title="클릭하여 다운로드">
-                                <span class="attachment-file-icon">${this.getFileIcon(f.name || f.original_name || 'unknown')}</span>
-                                <div class="attachment-file-info">
-                                    <div class="attachment-file-name">${this.escapeHtml(f.name || f.original_name || '파일')}</div>
-                                    <div class="attachment-file-size">${this.formatFileSize(f.size || 0)}</div>
-                                </div>
-                            </div>`
-                        ).join('')}</div>` : 
+                        `<div class="attachment-list">
+                            ${file.files.map((f, index) => 
+                                `<div class="attachment-item-public" onclick="publicViewer.downloadSingleFile('${file.id}', ${index})" title="클릭하여 다운로드">
+                                    <span class="attachment-file-icon">${this.getFileIcon(f.original_name || 'unknown')}</span>
+                                    <span class="attachment-file-name">${this.escapeHtml(f.original_name || '파일')}</span>
+                                </div>`
+                            ).join('')}
+                        </div>` : 
                         `<span class="no-attachment">-</span>`
                     }
                 </td>
                 <td class="col-date">${createdDate}</td>
                 <td class="col-actions">
                     ${hasAttachments ? 
-                        `<button class="action-btn btn-download" onclick="fileManager.downloadFiles('${file.id}')" title="다운로드">📥</button>` : 
+                        `<button class="action-btn btn-download" onclick="publicViewer.downloadFiles('${file.id}')" title="다운로드">📥</button>` : 
                         `<span class="no-attachment">-</span>`
                     }
                 </td>
             </tr>
         `;
+    }
+
+    parseJsonTags(tags) {
+        try {
+            if (typeof tags === 'string') {
+                return JSON.parse(tags);
+            }
+            return Array.isArray(tags) ? tags : [];
+        } catch (error) {
+            return [];
+        }
     }
 
     getFileIcon(fileName) {
@@ -173,17 +200,16 @@ class FileManager {
     }
 
     showDetailView(file) {
-        // 메인 컨테이너 숨기기
         const container = document.querySelector('.container');
         container.style.display = 'none';
         
-        // 상세보기 컨테이너 생성
         const detailContainer = document.createElement('div');
         detailContainer.className = 'detail-container';
         detailContainer.id = 'detailContainer';
         
-        const createdDate = new Date(file.created_at || file.createdAt).toLocaleDateString('ko-KR');
-        const updatedDate = new Date(file.updated_at || file.updatedAt).toLocaleDateString('ko-KR');
+        const createdDate = new Date(file.created_at).toLocaleDateString('ko-KR');
+        const updatedDate = new Date(file.updated_at).toLocaleDateString('ko-KR');
+        const tags = this.parseJsonTags(file.tags);
         
         detailContainer.innerHTML = `
             <div class="container">
@@ -195,7 +221,7 @@ class FileManager {
                 <div class="detail-section">
                     <div class="detail-header">
                         <h2>📄 ${this.escapeHtml(file.title)}</h2>
-                        <button class="back-btn" onclick="fileManager.hideDetailView()">
+                        <button class="back-btn" onclick="publicViewer.hideDetailView()">
                             ← 목록으로 돌아가기
                         </button>
                     </div>
@@ -216,12 +242,12 @@ class FileManager {
                                 </div>
                             </div>
                             
-                            ${file.tags && file.tags.length > 0 ? `
+                            ${tags && tags.length > 0 ? `
                             <div class="info-group">
                                 <label>🏷️ 태그</label>
                                 <div class="info-value">
                                     <div class="tags-container">
-                                        ${file.tags.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('')}
+                                        ${tags.map(tag => `<span class="tag">#${this.escapeHtml(tag)}</span>`).join('')}
                                     </div>
                                 </div>
                             </div>` : ''}
@@ -233,16 +259,16 @@ class FileManager {
                                     <div class="attachments-list">
                                         ${file.files.map((f, index) => `
                                             <div class="attachment-item">
-                                                <span class="attachment-icon">${this.getFileIcon(f.name || f.original_name || 'unknown')}</span>
-                                                <span class="attachment-name">${this.escapeHtml(f.name || f.original_name || '파일')}</span>
-                                                <button class="download-single-btn" onclick="fileManager.downloadSingleFile('${file.id}', ${index})" title="다운로드">
+                                                <span class="attachment-icon">${this.getFileIcon(f.original_name || 'unknown')}</span>
+                                                <span class="attachment-name">${this.escapeHtml(f.original_name || '파일')}</span>
+                                                <button class="download-single-btn" onclick="publicViewer.downloadSingleFile('${file.id}', ${index})" title="다운로드">
                                                     📥 다운로드
                                                 </button>
                                             </div>
                                         `).join('')}
                                     </div>
                                     <div class="attachment-actions">
-                                        <button class="download-all-btn" onclick="fileManager.downloadFiles('${file.id}')" title="모든 파일 다운로드">
+                                        <button class="download-all-btn" onclick="publicViewer.downloadFiles('${file.id}')" title="모든 파일 다운로드">
                                             📦 모든 파일 다운로드
                                         </button>
                                     </div>
@@ -280,18 +306,13 @@ class FileManager {
             detailContainer.remove();
         }
         
-        // 메인 컨테이너 다시 보이기
         const container = document.querySelector('.container');
         container.style.display = 'block';
     }
 
     async downloadFiles(id) {
         const file = this.files.find(f => f.id === id);
-        if (!file) {
-            this.showNotification('파일을 찾을 수 없습니다.', 'error');
-            return;
-        }
-        if (!file.files || file.files.length === 0) {
+        if (!file || !file.files || file.files.length === 0) {
             this.showNotification('첨부파일이 없습니다.', 'error');
             return;
         }
@@ -299,12 +320,13 @@ class FileManager {
         try {
             if (file.files.length === 1) {
                 // 단일 파일: 직접 다운로드
-                await this.downloadSingleFileData(file.files[0]);
-                this.showNotification(`파일 다운로드 완료: ${file.files[0].name || file.files[0].original_name}`, 'success');
+                await this.downloadSingleFile(id, 0);
             } else {
-                // 다중 파일: localStorage에서 base64 데이터를 각각 다운로드
-                for (const fileData of file.files) {
-                    await this.downloadSingleFileData(fileData);
+                // 다중 파일: 각각 다운로드
+                for (let i = 0; i < file.files.length; i++) {
+                    await this.downloadSingleFile(id, i);
+                    // 짧은 딜레이를 추가하여 브라우저가 다운로드를 처리할 시간을 줌
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
                 this.showNotification(`${file.files.length}개 파일 다운로드 완료`, 'success');
             }
@@ -314,41 +336,134 @@ class FileManager {
         }
     }
 
-    async downloadSingleFile(fileId, fileIndex) {
-        const file = this.files.find(f => f.id === fileId);
-        if (!file) {
-            this.showNotification('파일을 찾을 수 없습니다.', 'error');
-            return;
-        }
-        if (!file.files || !file.files[fileIndex]) {
-            this.showNotification('첨부파일을 찾을 수 없습니다.', 'error');
-            return;
-        }
-
+    async downloadSingleFile(fileId, attachmentIndex) {
         try {
-            const fileData = file.files[fileIndex];
-            await this.downloadSingleFileData(fileData);
-            this.showNotification(`파일 다운로드 완료: ${fileData.name || fileData.original_name}`, 'success');
+            // 다운로드 시작 로딩 표시
+            this.showLoading(true);
+            
+            console.log('downloadSingleFile 호출됨:', fileId, attachmentIndex);
+            const file = this.files.find(f => f.id === fileId);
+            console.log('찾은 파일:', file);
+            
+            if (!file || !file.files[attachmentIndex]) {
+                console.log('파일 또는 첨부파일을 찾을 수 없음');
+                throw new Error('파일을 찾을 수 없습니다.');
+            }
+            
+            const attachmentId = file.files[attachmentIndex].id;
+            const downloadUrl = `/api/download/${fileId}/${attachmentId}`;
+            console.log('다운로드 URL:', downloadUrl);
+            
+            const response = await fetch(downloadUrl, {
+                credentials: 'include'
+            });
+            console.log('응답 상태:', response.status, response.statusText);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.log('응답 오류:', errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            }
+            
+            console.log('다운로드 시작...');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            // 파일명을 서버에서 전송된 정보에서 추출 (개선된 방식)
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = file.files[attachmentIndex].original_name || `download_${Date.now()}`;
+            
+            console.log('📁 다운로드 파일명 처리:', {
+                original_name: file.files[attachmentIndex].original_name,
+                content_disposition: contentDisposition,
+                default_filename: filename
+            });
+            
+            if (contentDisposition) {
+                // RFC 5987 filename* 파라미터를 우선 처리 (UTF-8 지원)
+                const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/);
+                if (filenameStarMatch) {
+                    filename = decodeURIComponent(filenameStarMatch[1]);
+                    console.log('📁 UTF-8 파일명 추출:', filename);
+                } else {
+                    // 일반 filename 파라미터 처리
+                    const filenameMatch = contentDisposition.match(/filename="?([^";\r\n]+)"?/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                        console.log('📁 기본 파일명 추출:', filename);
+                    }
+                }
+            }
+            
+            // 파일명이 여전히 비어있다면 기본값 사용
+            if (!filename || filename.trim() === '') {
+                filename = file.files[attachmentIndex].original_name || `download_${Date.now()}`;
+                console.log('📁 기본 파일명 사용:', filename);
+            }
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('다운로드 완료');
+            this.showLoading(false);
+            
+            if (arguments.length === 2) { // 단일 파일 다운로드인 경우만 알림 표시
+                this.showNotification(`파일 다운로드 완료: ${filename}`, 'success');
+            }
         } catch (error) {
-            console.error('개별 파일 다운로드 오류:', error);
+            console.error('downloadSingleFile 오류:', error);
+            this.showLoading(false);
             this.showNotification('파일 다운로드 중 오류가 발생했습니다.', 'error');
         }
     }
 
-    async downloadSingleFileData(fileData) {
-        if (fileData.data) {
-            // localStorage의 base64 데이터 다운로드
-            const link = document.createElement('a');
-            link.href = fileData.data;
-            link.download = fileData.name || fileData.original_name || 'file';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+    updatePagination() {
+        const totalPages = Math.max(1, Math.ceil(this.filteredFiles.length / this.itemsPerPage));
+        const pagination = document.getElementById('pagination');
+        const prevBtn = document.getElementById('prevPage');
+        const nextBtn = document.getElementById('nextPage');
+        const pageInfo = document.getElementById('pageInfo');
+        
+        pagination.style.display = 'flex';
+        
+        prevBtn.disabled = this.currentPage <= 1;
+        nextBtn.disabled = this.currentPage >= totalPages || this.filteredFiles.length === 0;
+        
+        const displayTotalPages = this.filteredFiles.length === 0 ? 1 : totalPages;
+        const displayCurrentPage = this.filteredFiles.length === 0 ? 1 : this.currentPage;
+        pageInfo.textContent = `${displayCurrentPage} / ${displayTotalPages}`;
+    }
+
+    goToPrevPage() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.renderFiles();
+            this.updatePagination();
+        }
+    }
+
+    goToNextPage() {
+        const totalPages = Math.ceil(this.filteredFiles.length / this.itemsPerPage);
+        if (this.currentPage < totalPages) {
+            this.currentPage++;
+            this.renderFiles();
+            this.updatePagination();
+        }
+    }
+
+    showLoading(show) {
+        const loadingEl = document.getElementById('loadingMessage');
+        if (loadingEl) {
+            loadingEl.style.display = show ? 'block' : 'none';
         }
     }
 
     showNotification(message, type = 'info') {
-        // 간단한 알림 표시
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
@@ -374,102 +489,15 @@ class FileManager {
         }, 3000);
     }
 
-    updatePagination() {
-        const totalPages = Math.max(1, Math.ceil(this.filteredFiles.length / this.itemsPerPage));
-        const pagination = document.getElementById('pagination');
-        const prevBtn = document.getElementById('prevPage');
-        const nextBtn = document.getElementById('nextPage');
-        const pageInfo = document.getElementById('pageInfo');
-        
-        // 항상 페이지네이션을 표시
-        pagination.style.display = 'flex';
-        
-        // 페이지 버튼 상태 업데이트
-        prevBtn.disabled = this.currentPage <= 1;
-        nextBtn.disabled = this.currentPage >= totalPages || this.filteredFiles.length === 0;
-        
-        // 페이지 정보 표시 (아이템이 없어도 1/1로 표시)
-        const displayTotalPages = this.filteredFiles.length === 0 ? 1 : totalPages;
-        const displayCurrentPage = this.filteredFiles.length === 0 ? 1 : this.currentPage;
-        pageInfo.textContent = `${displayCurrentPage} / ${displayTotalPages}`;
-    }
-
-    goToPrevPage() {
-        if (this.currentPage > 1) {
-            this.currentPage--;
-            this.renderFiles();
-            this.updatePagination();
-        }
-    }
-
-    goToNextPage() {
-        const totalPages = Math.ceil(this.filteredFiles.length / this.itemsPerPage);
-        if (this.currentPage < totalPages) {
-            this.currentPage++;
-            this.renderFiles();
-            this.updatePagination();
-        }
-    }
-
-
-    loadFiles() {
-        try {
-            const stored = localStorage.getItem('fileManagerData');
-            const files = stored ? JSON.parse(stored) : [];
-            
-            // 기존 localStorage 데이터의 호환성을 위해 컴럼명 변환
-            return files.map(file => ({
-                ...file,
-                created_at: file.created_at || file.createdAt || new Date().toISOString(),
-                updated_at: file.updated_at || file.updatedAt || new Date().toISOString()
-            }));
-        } catch (error) {
-            console.error('파일 로드 중 오류:', error);
-            return [];
-        }
-    }
-
-    saveFiles() {
-        try {
-            localStorage.setItem('fileManagerData', JSON.stringify(this.files));
-        } catch (error) {
-            console.error('파일 저장 중 오류:', error);
-        }
-    }
-
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
-
-    showMessage(message, type = 'success') {
-        const messageEl = document.createElement('div');
-        messageEl.className = `message ${type}`;
-        messageEl.textContent = message;
-        messageEl.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${type === 'error' ? '#ef4444' : '#10b981'};
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            z-index: 1000;
-            animation: slideIn 0.3s ease-out;
-        `;
-        
-        document.body.appendChild(messageEl);
-        setTimeout(() => {
-            messageEl.style.animation = 'slideOut 0.3s ease-out';
-            setTimeout(() => messageEl.remove(), 300);
-        }, 3000);
-    }
 }
 
 // 전역 인스턴스 생성
-let fileManager;
+let publicViewer;
 document.addEventListener('DOMContentLoaded', () => {
-    fileManager = new FileManager();
+    publicViewer = new PublicFileViewer();
 });

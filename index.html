@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>자료실 - CRUD 시스템</title>
+    <title>자료실 - 파일 보기</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📚 자료실 관리 시스템</h1>
-            <p>파일과 문서를 효율적으로 관리하세요</p>
+            <h1>📚 자료실</h1>
+            <p>등록된 자료를 검색하고 다운로드할 수 있습니다</p>
+            <div class="admin-link">
+                <a href="/admin/" class="admin-btn">🔑 관리자 페이지</a>
+            </div>
         </header>
 
         <div class="search-section">
@@ -26,7 +28,6 @@
             </select>
             <button id="searchBtn">🔍 검색</button>
         </div>
-
 
         <div class="list-section">
             <div class="list-header">
@@ -66,10 +67,13 @@
                 <button id="nextPage" class="page-btn" disabled>다음 ▶</button>
             </div>
         </div>
+        
+        <div id="loadingMessage" class="loading" style="display: none;">
+            <p>데이터를 불러오는 중...</p>
+        </div>
     </div>
 
-
-    <script src="supabase-config.js"></script>
+    <script src="api-client.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
