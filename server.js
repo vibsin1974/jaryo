@@ -16,7 +16,7 @@ const db = new DatabaseHelper();
 
 // 미들웨어 설정
 app.use(cors({
-    origin: ['http://localhost:3001', 'http://127.0.0.1:3001'],
+    origin: true, // 모든 도메인 허용 (Vercel 배포용)
     credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -28,7 +28,7 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // HTTPS에서는 true로 설정
+        secure: process.env.NODE_ENV === 'production', // Vercel에서는 HTTPS
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24시간
     }
@@ -51,6 +51,16 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // 루트 경로에서 메인 페이지로 리다이렉트
 app.get('/', (req, res) => {
     res.redirect('/index.html');
+});
+
+// 헬스 체크 엔드포인트
+app.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Jaryo File Manager is running',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
+    });
 });
 
 // Multer 설정 (파일 업로드)
