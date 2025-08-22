@@ -47,7 +47,8 @@
       "Bash(npm install)",
       "Bash(powershell:*)",
       "Bash(schtasks:*)",
-      "Bash(cmd //c:*)"
+      "Bash(cmd //c:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": [],
