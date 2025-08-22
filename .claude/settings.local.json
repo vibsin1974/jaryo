@@ -44,7 +44,10 @@
       "Bash(scp:*)",
       "Bash(cat:*)",
       "Bash(./deploy-manual.sh)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(powershell:*)",
+      "Bash(schtasks:*)",
+      "Bash(cmd //c:*)"
     ],
     "deny": [],
     "ask": [],

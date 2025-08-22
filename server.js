@@ -827,11 +827,11 @@ module.exports = app;
 
 // 로컬 개발 환경에서만 서버 시작
 if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
-    const server = app.listen(PORT, () => {
+    const server = app.listen(PORT, '99.1.110.50', () => {
         console.log(`🚀 자료실 서버가 포트 ${PORT}에서 실행중입니다.`);
-        console.log(`📱 Admin 페이지: http://localhost:${PORT}/admin/index.html`);
-        console.log(`🌐 Main 페이지: http://localhost:${PORT}/index.html`);
-        console.log(`📊 API: http://localhost:${PORT}/api/files`);
+        console.log(`📱 Admin 페이지: http://99.1.110.50:${PORT}/admin/index.html`);
+        console.log(`🌐 Main 페이지: http://99.1.110.50:${PORT}/index.html`);
+        console.log(`📊 API: http://99.1.110.50:${PORT}/api/files`);
     });
     
     // 대용량 파일 다운로드를 위해 서버 타임아웃을 30분으로 설정
