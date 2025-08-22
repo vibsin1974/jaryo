@@ -364,8 +364,8 @@ class DatabaseHelper {
         
         return new Promise((resolve, reject) => {
             const query = `
-                INSERT INTO file_attachments (file_id, original_name, file_name, file_path, file_size, mime_type, file_data)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO file_attachments (file_id, original_name, file_name, file_path, file_size, mime_type)
+                VALUES (?, ?, ?, ?, ?, ?)
             `;
             
             const params = [
@@ -374,8 +374,7 @@ class DatabaseHelper {
                 attachmentData.file_name || attachmentData.original_name,
                 attachmentData.file_path || '',
                 attachmentData.file_size || 0,
-                attachmentData.mime_type || '',
-                attachmentData.file_data || null
+                attachmentData.mime_type || ''
             ];
             
             this.db.run(query, params, function(err) {
@@ -410,7 +409,7 @@ class DatabaseHelper {
         await this.connect();
         
         return new Promise((resolve, reject) => {
-            const query = 'SELECT * FROM categories ORDER BY is_default DESC, name ASC';
+            const query = 'SELECT * FROM categories ORDER BY name ASC';
             
             this.db.all(query, [], (err, rows) => {
                 if (err) {

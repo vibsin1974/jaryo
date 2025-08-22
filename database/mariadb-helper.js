@@ -10,12 +10,12 @@ class MariaDBHelper {
         const isNAS = process.env.NODE_ENV === 'production' || process.env.DEPLOY_ENV === 'nas';
         
         if (isWindows) {
-            // Windows 개발 환경 (로컬 MariaDB/MySQL)
+            // Windows 개발 환경 (NAS MariaDB 원격 접속)
             this.config = {
-                host: process.env.DB_HOST || 'localhost',
+                host: process.env.DB_HOST || '119.64.1.86',
                 port: process.env.DB_PORT || 3306,
-                user: process.env.DB_USER || 'root',
-                password: process.env.DB_PASSWORD || '',
+                user: process.env.DB_USER || 'jaryo_user',
+                password: process.env.DB_PASSWORD || 'JaryoPass2024!@#',
                 database: process.env.DB_NAME || 'jaryo',
                 charset: 'utf8mb4'
             };

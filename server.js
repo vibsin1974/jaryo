@@ -6,13 +6,13 @@ const fs = require('fs');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
-const MariaDBHelper = require('./database/mariadb-helper');
+const DatabaseHelper = require('./database/db-helper');
 
 const app = express();
 const PORT = process.env.PORT || 3005;
 
-// 데이터베이스 헬퍼 인스턴스 (MariaDB)
-const db = new MariaDBHelper();
+// 데이터베이스 헬퍼 인스턴스 (SQLite - 로컬 테스트용)
+const db = new DatabaseHelper();
 
 // 미들웨어 설정
 app.use(cors({
@@ -699,12 +699,12 @@ app.get('/api/stats', async (req, res) => {
     }
 });
 
-// 파일 다운로드
+// 파일 다운로드 (SQLite 호환)
 app.get('/api/download/:id/:attachmentId', async (req, res) => {
     try {
         const { id, attachmentId } = req.params;
         
-        // 첨부파일 정보 조회 (간단한 쿼리로 대체)
+        // SQLite에서 첨부파일 정보 조회
         await db.connect();
         const query = 'SELECT * FROM file_attachments WHERE id = ? AND file_id = ?';
         
@@ -728,65 +728,65 @@ app.get('/api/download/:id/:attachmentId', async (req, res) => {
             
             if (fs.existsSync(filePath)) {
                 // 한글 파일명을 위한 개선된 헤더 설정
-                console.log('📁 다운로드 파일 정보:', {
-                    original_name: row.original_name,
-                    file_path: row.file_path,
-                    storage_path: filePath
-                });
+            console.log('📁 다운로드 파일 정보:', {
+                original_name: row.original_name,
+                file_path: row.file_path,
+                storage_path: filePath
+            });
+            
+            const originalName = row.original_name || 'download';
+            const encodedName = encodeURIComponent(originalName);
+            
+            // RFC 5987을 준수하는 헤더 설정 (한글 파일명 지원)
+            const stat = fs.statSync(filePath);
+            const fileSize = stat.size;
+            
+            // Range 요청 처리
+            const range = req.headers.range;
+            let start = 0;
+            let end = fileSize - 1;
+            let statusCode = 200;
+            
+            if (range) {
+                const parts = range.replace(/bytes=/, "").split("-");
+                start = parseInt(parts[0], 10);
+                end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+                statusCode = 206; // Partial Content
                 
-                const originalName = row.original_name || 'download';
-                const encodedName = encodeURIComponent(originalName);
-                
-                // RFC 5987을 준수하는 헤더 설정 (한글 파일명 지원)
-                const stat = fs.statSync(filePath);
-                const fileSize = stat.size;
-                
-                // Range 요청 처리
-                const range = req.headers.range;
-                let start = 0;
-                let end = fileSize - 1;
-                let statusCode = 200;
-                
-                if (range) {
-                    const parts = range.replace(/bytes=/, "").split("-");
-                    start = parseInt(parts[0], 10);
-                    end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-                    statusCode = 206; // Partial Content
-                    
-                    res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
-                    res.setHeader('Content-Length', (end - start + 1));
-                } else {
-                    res.setHeader('Content-Length', fileSize);
+                res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+                res.setHeader('Content-Length', (end - start + 1));
+            } else {
+                res.setHeader('Content-Length', fileSize);
+            }
+            
+            res.status(statusCode);
+            res.setHeader('Content-Disposition', 
+                `attachment; filename*=UTF-8''${encodedName}`);
+            res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
+            res.setHeader('Accept-Ranges', 'bytes');
+            res.setHeader('Cache-Control', 'public, max-age=0');
+            
+            // 클라이언트 연결 끊김 감지
+            res.on('close', () => {
+                if (!res.headersSent) {
+                    console.log('📁 다운로드 취소됨:', originalName);
                 }
-                
-                res.status(statusCode);
-                res.setHeader('Content-Disposition', 
-                    `attachment; filename*=UTF-8''${encodedName}`);
-                res.setHeader('Content-Type', row.mime_type || 'application/octet-stream');
-                res.setHeader('Accept-Ranges', 'bytes');
-                res.setHeader('Cache-Control', 'public, max-age=0');
-                
-                // 클라이언트 연결 끊김 감지
-                res.on('close', () => {
-                    if (!res.headersSent) {
-                        console.log('📁 다운로드 취소됨:', originalName);
-                    }
-                });
+            });
 
-                // 스트림 기반 다운로드로 대용량 파일 지원 (Range 요청 지원)
-                const readStream = fs.createReadStream(filePath, { start, end });
-                
-                readStream.on('error', (err) => {
-                    console.error('📁 파일 읽기 오류:', err);
-                    if (!res.headersSent) {
-                        res.status(500).json({ error: '파일 읽기 실패' });
-                    }
-                });
-                
-                readStream.on('end', () => {
-                    console.log('📁 다운로드 완료:', originalName);
-                });
-                
+            // 스트림 기반 다운로드로 대용량 파일 지원 (Range 요청 지원)
+            const readStream = fs.createReadStream(filePath, { start, end });
+            
+            readStream.on('error', (err) => {
+                console.error('📁 파일 읽기 오류:', err);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: '파일 읽기 실패' });
+                }
+            });
+            
+            readStream.on('end', () => {
+                console.log('📁 다운로드 완료:', originalName);
+            });
+            
                 // 스트림을 응답에 연결
                 readStream.pipe(res);
             } else {
