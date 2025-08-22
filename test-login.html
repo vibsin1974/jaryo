@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+</head>
+<body>
+    <h1>Admin Login Test</h1>
+    <div>
+        <input type="email" id="email" value="admin@jaryo.com" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="testLogin()">Test Login</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            console.log('Testing login with:', { email, password });
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (response.ok) {
+                    result.innerHTML = '<p style="color: green;">✅ Login Success: ' + JSON.stringify(data, null, 2) + '</p>';
+                    
+                    // Test session
+                    const sessionResponse = await fetch('/api/auth/session', {
+                        credentials: 'include'
+                    });
+                    const sessionData = await sessionResponse.json();
+                    console.log('Session data:', sessionData);
+                    
+                    result.innerHTML += '<p style="color: blue;">📋 Session: ' + JSON.stringify(sessionData, null, 2) + '</p>';
+                } else {
+                    result.innerHTML = '<p style="color: red;">❌ Login Failed: ' + JSON.stringify(data, null, 2) + '</p>';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                result.innerHTML = '<p style="color: red;">❌ Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -135,27 +135,30 @@ if [ \$? -ne 0 ]; then
 fi
 echo '✅ 의존성 설치 완료'
 
-# 데이터베이스 백업 및 초기화
-if [ -f 'scripts/init-database.js' ]; then
-    # 기존 데이터베이스 백업
-    DB_FILE='data/database.db'
-    BACKUP_FILE='data/database_backup_$(date +%Y%m%d_%H%M%S).db'
+# MariaDB 데이터베이스 초기화
+if [ -f 'scripts/init-mariadb.js' ]; then
+    echo '🗄️  MariaDB 데이터베이스 초기화 중...'
+    echo 'ℹ️  MariaDB 연결 설정:'
+    echo '  - 데이터베이스: jaryo'
+    echo '  - 사용자: jaryo_user'
+    echo '  - 소켓: /run/mysqld/mysqld10.sock'
     
-    if [ -f '\$DB_FILE' ]; then
-        echo '💾 기존 데이터베이스 백업 중...'
-        cp '\$DB_FILE' '\$BACKUP_FILE'
-        echo '✅ 백업 완료: \$BACKUP_FILE'
-        
-        # 기존 데이터 유지 - 초기화 건너뛰기
-        echo 'ℹ️  기존 데이터베이스 발견 - 초기화 건너뛰기'
-        echo '💡 새 데이터베이스가 필요하면 수동으로 실행: npm run init-db'
+    export PATH='$NODE_PATH':\$PATH
+    if '$NODE_PATH'/npm run init-mariadb; then
+        echo '✅ MariaDB 초기화 완료'
     else
-        # 새 설치 - 데이터베이스 초기화
-        echo '🗄️  새 데이터베이스 초기화 중...'
-        export PATH='$NODE_PATH':\$PATH
-        '$NODE_PATH'/npm run init-db
-        echo '✅ 데이터베이스 초기화 완료'
+        echo '❌ MariaDB 초기화 실패'
+        echo '💡 MariaDB 설정을 확인하고 다음 명령어를 실행하세요:'
+        echo '  mysql -u root -p << EOF'
+        echo '  CREATE DATABASE IF NOT EXISTS jaryo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+        echo '  CREATE USER IF NOT EXISTS '\''jaryo_user'\''@'\''localhost'\'' IDENTIFIED BY '\''JaryoPass2024!@#'\'';'
+        echo '  GRANT ALL PRIVILEGES ON jaryo.* TO '\''jaryo_user'\''@'\''localhost'\'';'
+        echo '  FLUSH PRIVILEGES;'
+        echo '  EOF'
+        exit 1
     fi
+else
+    echo '⚠️  MariaDB 초기화 스크립트를 찾을 수 없습니다.'
 fi
 "
 
@@ -201,7 +204,12 @@ fi
 # 서비스 시작
 echo '🚀 자료실 서비스 시작 중...'
 cd '\$PROJECT_DIR'
-PORT='$SERVICE_PORT' nohup \$NODE_PATH/node server.js > '\$LOG_FILE' 2>&1 &
+# NAS 환경 변수 설정
+export NODE_ENV=production
+export DEPLOY_ENV=nas
+export HOST=0.0.0.0
+export PORT='$SERVICE_PORT'
+nohup \$NODE_PATH/node server.js > '\$LOG_FILE' 2>&1 &
 echo \$! > '\$PID_FILE'
 
 sleep 2

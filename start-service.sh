@@ -40,9 +40,24 @@ if [ ! -d "node_modules" ]; then
     $NPM_PATH install
 fi
 
-# 데이터베이스 초기화
-echo "데이터베이스 초기화 중..."
-$NODE_PATH scripts/init-database.js
+# MariaDB 데이터베이스 초기화
+echo "MariaDB 데이터베이스 초기화 중..."
+if [ -f "scripts/init-mariadb.js" ]; then
+    # NAS 환경 설정
+    export NODE_ENV=production
+    export DEPLOY_ENV=nas
+    
+    if $NPM_PATH run init-mariadb; then
+        echo "✅ MariaDB 초기화 완료"
+    else
+        echo "⚠️ MariaDB 초기화 실패"
+        echo "💡 수동으로 MariaDB를 설정해야 할 수 있습니다."
+        echo "자세한 내용은 mariadb-setup.md를 참조하세요."
+    fi
+else
+    echo "⚠️ MariaDB 초기화 스크립트를 찾을 수 없습니다."
+    echo "💡 수동으로 MariaDB를 설정하세요."
+fi
 
 # 기존 프로세스 종료
 if [ -f "$PID_FILE" ]; then
@@ -57,6 +72,12 @@ fi
 
 # 서비스 시작
 echo "서비스 시작 중..."
+# NAS 환경 변수 설정
+export NODE_ENV=production
+export DEPLOY_ENV=nas
+export HOST=0.0.0.0
+export PORT=3005
+
 nohup $NODE_PATH server.js > "$LOG_FILE" 2>&1 &
 NEW_PID=$!
 

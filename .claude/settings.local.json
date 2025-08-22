@@ -48,7 +48,13 @@
       "Bash(powershell:*)",
       "Bash(schtasks:*)",
       "Bash(cmd //c:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "mcp__playwright__browser_wait_for",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(npm run init-mariadb:*)",
+      "Bash(npm test)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": [],

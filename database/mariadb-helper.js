@@ -4,24 +4,55 @@ const { v4: uuidv4 } = require('uuid');
 class MariaDBHelper {
     constructor() {
         this.connection = null;
-        this.config = {
-            socketPath: '/run/mysqld/mysqld10.sock',
-            user: 'jaryo_user',
-            password: 'JaryoPass2024!@#',
-            database: 'jaryo',
-            charset: 'utf8mb4'
-        };
+        
+        // 환경별 설정 지원
+        const isWindows = process.platform === 'win32';
+        const isNAS = process.env.NODE_ENV === 'production' || process.env.DEPLOY_ENV === 'nas';
+        
+        if (isWindows) {
+            // Windows 개발 환경 (로컬 MariaDB/MySQL)
+            this.config = {
+                host: process.env.DB_HOST || 'localhost',
+                port: process.env.DB_PORT || 3306,
+                user: process.env.DB_USER || 'root',
+                password: process.env.DB_PASSWORD || '',
+                database: process.env.DB_NAME || 'jaryo',
+                charset: 'utf8mb4'
+            };
+        } else if (isNAS) {
+            // 시놀로지 NAS 환경 (Unix Socket)
+            this.config = {
+                socketPath: '/run/mysqld/mysqld10.sock',
+                user: 'jaryo_user',
+                password: 'JaryoPass2024!@#',
+                database: 'jaryo',
+                charset: 'utf8mb4'
+            };
+        } else {
+            // 기타 Linux 환경
+            this.config = {
+                host: process.env.DB_HOST || 'localhost',
+                port: process.env.DB_PORT || 3306,
+                user: process.env.DB_USER || 'jaryo_user',
+                password: process.env.DB_PASSWORD || 'JaryoPass2024!@#',
+                database: process.env.DB_NAME || 'jaryo',
+                charset: 'utf8mb4'
+            };
+        }
     }
 
     async connect() {
         try {
             if (!this.connection || this.connection.connection._closing) {
                 this.connection = await mysql.createConnection(this.config);
-                console.log('✅ MariaDB 연결 성공 (Unix Socket)');
+                
+                const connectionType = this.config.socketPath ? 'Unix Socket' : `TCP ${this.config.host}:${this.config.port}`;
+                console.log(`✅ MariaDB 연결 성공 (${connectionType})`);
             }
             return this.connection;
         } catch (error) {
             console.error('❌ MariaDB 연결 실패:', error);
+            console.error('연결 설정:', { ...this.config, password: '***' });
             throw error;
         }
     }

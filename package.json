@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "init-db": "node scripts/init-database.js",
+    "init-mariadb": "node scripts/init-mariadb.js",
     "build": "echo 'Build complete'"
   },
   "dependencies": {

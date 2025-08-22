@@ -6,13 +6,13 @@ const fs = require('fs');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
-const DatabaseHelper = require('./database/db-helper');
+const MariaDBHelper = require('./database/mariadb-helper');
 
 const app = express();
 const PORT = process.env.PORT || 3005;
 
-// 데이터베이스 헬퍼 인스턴스
-const db = new DatabaseHelper();
+// 데이터베이스 헬퍼 인스턴스 (MariaDB)
+const db = new MariaDBHelper();
 
 // 미들웨어 설정
 app.use(cors({
@@ -26,9 +26,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(session({
     secret: 'jaryo-file-manager-secret-key-2024',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // 세션 초기화 허용
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Vercel에서는 HTTPS
+        secure: false, // 개발 환경에서도 HTTP로 작동하도록 수정
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24시간
     }
@@ -827,11 +827,19 @@ module.exports = app;
 
 // 로컬 개발 환경에서만 서버 시작
 if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
-    const server = app.listen(PORT, '99.1.110.50', () => {
+    const HOST = process.env.HOST || '0.0.0.0'; // NAS 호환성을 위해 모든 인터페이스에서 수신
+    const server = app.listen(PORT, HOST, () => {
+        const serverAddress = server.address();
+        const host = serverAddress.address === '::' ? 'localhost' : 
+                    serverAddress.address === '0.0.0.0' ? 'localhost' : 
+                    serverAddress.address;
+        
         console.log(`🚀 자료실 서버가 포트 ${PORT}에서 실행중입니다.`);
-        console.log(`📱 Admin 페이지: http://99.1.110.50:${PORT}/admin/index.html`);
-        console.log(`🌐 Main 페이지: http://99.1.110.50:${PORT}/index.html`);
-        console.log(`📊 API: http://99.1.110.50:${PORT}/api/files`);
+        console.log(`📍 서버 주소: ${HOST}:${PORT}`);
+        console.log(`📱 Admin 페이지: http://${host}:${PORT}/admin/index.html`);
+        console.log(`🌐 Main 페이지: http://${host}:${PORT}/index.html`);
+        console.log(`📊 API: http://${host}:${PORT}/api/files`);
+        console.log(`🔧 NAS 접속: http://[NAS-IP]:${PORT}`);
     });
     
     // 대용량 파일 다운로드를 위해 서버 타임아웃을 30분으로 설정

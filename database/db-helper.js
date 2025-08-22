@@ -4,7 +4,9 @@ const fs = require('fs');
 
 class DatabaseHelper {
     constructor() {
-        this.dbPath = path.join(__dirname, 'jaryo.db');
+        // 프로젝트 루트의 data 디렉토리에 데이터베이스 저장
+        const projectRoot = path.resolve(__dirname, '..');
+        this.dbPath = path.join(projectRoot, 'data', 'jaryo.db');
         this.db = null;
     }
 
@@ -16,13 +18,26 @@ class DatabaseHelper {
                 return;
             }
 
-            this.db = new sqlite3.Database(this.dbPath, sqlite3.OPEN_READWRITE, (err) => {
+            // 데이터베이스 디렉토리 생성
+            const dbDir = path.dirname(this.dbPath);
+            if (!fs.existsSync(dbDir)) {
+                fs.mkdirSync(dbDir, { recursive: true });
+            }
+
+            // 데이터베이스 파일이 없으면 생성
+            const flags = fs.existsSync(this.dbPath) ? 
+                sqlite3.OPEN_READWRITE : 
+                sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE;
+
+            this.db = new sqlite3.Database(this.dbPath, flags, (err) => {
                 if (err) {
                     console.error('데이터베이스 연결 오류:', err.message);
                     reject(err);
                 } else {
-                    console.log('✅ SQLite 데이터베이스 연결됨');
-                    resolve(this.db);
+                    console.log('✅ SQLite 데이터베이스 연결됨:', this.dbPath);
+                    this.initializeTables().then(() => {
+                        resolve(this.db);
+                    }).catch(reject);
                 }
             });
         });
@@ -43,6 +58,78 @@ class DatabaseHelper {
             } else {
                 resolve();
             }
+        });
+    }
+
+    // 테이블 초기화
+    initializeTables() {
+        return new Promise((resolve, reject) => {
+            const createTables = `
+                -- 사용자 테이블
+                CREATE TABLE IF NOT EXISTS users (
+                    id TEXT PRIMARY KEY,
+                    email TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    role TEXT DEFAULT 'user',
+                    is_active INTEGER DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    last_login DATETIME
+                );
+
+                -- 카테고리 테이블
+                CREATE TABLE IF NOT EXISTS categories (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT UNIQUE NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
+                -- 파일 테이블
+                CREATE TABLE IF NOT EXISTS files (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    category TEXT NOT NULL,
+                    tags TEXT DEFAULT '[]',
+                    user_id TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                );
+
+                -- 첨부파일 테이블
+                CREATE TABLE IF NOT EXISTS file_attachments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    file_id TEXT NOT NULL,
+                    original_name TEXT NOT NULL,
+                    file_name TEXT NOT NULL,
+                    file_path TEXT NOT NULL,
+                    file_size INTEGER NOT NULL,
+                    mime_type TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE
+                );
+
+                -- 사용자 세션 테이블 (옵션)
+                CREATE TABLE IF NOT EXISTS user_sessions (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    expires_at DATETIME NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                );
+            `;
+
+            this.db.exec(createTables, (err) => {
+                if (err) {
+                    console.error('테이블 생성 오류:', err);
+                    reject(err);
+                } else {
+                    console.log('✅ 데이터베이스 테이블 초기화 완료');
+                    resolve();
+                }
+            });
         });
     }
 
