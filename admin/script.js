@@ -461,7 +461,7 @@ class AdminFileManager {
 
     async checkSession() {
         try {
-            const response = await fetch('/api/auth/session');
+            const response = await fetch('/api/auth/session', { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
                 if (data.user) {
@@ -494,20 +494,21 @@ class AdminFileManager {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include',
                 body: JSON.stringify({ email, password })
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                this.currentUser = data.user;
+                this.currentUser = data.user || data.data || null;
                 this.isLoggedIn = true;
                 this.showNotification('로그인되었습니다!', 'success');
                 
                 await this.loadData();
                 this.updateUI();
             } else {
-                throw new Error(data.message || '로그인에 실패했습니다.');
+                throw new Error(data.error || data.message || '로그인에 실패했습니다.');
             }
         } catch (error) {
             console.error('로그인 오류:', error);
@@ -520,7 +521,7 @@ class AdminFileManager {
 
     async handleLogout() {
         try {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
             
             this.currentUser = null;
             this.isLoggedIn = false;
