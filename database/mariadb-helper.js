@@ -5,15 +5,11 @@ class MariaDBHelper {
     constructor() {
         this.connection = null;
         this.config = {
-            host: 'localhost',
-            port: 3306,
+            socketPath: '/run/mysqld/mysqld10.sock',
             user: 'jaryo_user',
             password: 'JaryoPass2024!@#',
             database: 'jaryo',
-            charset: 'utf8mb4',
-            timezone: '+09:00',
-            acquireTimeout: 60000,
-            timeout: 60000
+            charset: 'utf8mb4'
         };
     }
 
@@ -21,7 +17,7 @@ class MariaDBHelper {
         try {
             if (!this.connection || this.connection.connection._closing) {
                 this.connection = await mysql.createConnection(this.config);
-                console.log('✅ MariaDB 연결 성공');
+                console.log('✅ MariaDB 연결 성공 (Unix Socket)');
             }
             return this.connection;
         } catch (error) {
