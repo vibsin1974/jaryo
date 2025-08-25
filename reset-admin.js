@@ -1,8 +1,8 @@
 const bcrypt = require('bcrypt');
-const MariaDBHelper = require('./database/mariadb-helper');
+const DatabaseHelper = require('./database/db-helper');
 
 async function resetAdminPassword() {
-    const dbHelper = new MariaDBHelper();
+    const dbHelper = new DatabaseHelper();
     
     try {
         console.log('🔄 관리자 비밀번호 초기화 시작...');
@@ -17,13 +17,16 @@ async function resetAdminPassword() {
         const existingUser = await dbHelper.getUserByEmail('admin@jaryo.com');
         
         if (existingUser) {
-            // 기존 사용자 비밀번호 업데이트
-            const conn = await dbHelper.connect();
-            const [result] = await conn.execute(
-                'UPDATE users SET password_hash = ? WHERE email = ?',
-                [hashedPassword, 'admin@jaryo.com']
-            );
-            console.log('✅ 기존 관리자 비밀번호가 업데이트되었습니다.');
+            // 기존 사용자 비밀번호 업데이트 (SQLite 용)
+            await dbHelper.connect();
+            const query = 'UPDATE users SET password_hash = ? WHERE email = ?';
+            dbHelper.db.run(query, [hashedPassword, 'admin@jaryo.com'], function(err) {
+                if (err) {
+                    console.error('비밀번호 업데이트 실패:', err);
+                } else {
+                    console.log('✅ 기존 관리자 비밀번호가 업데이트되었습니다.');
+                }
+            });
         } else {
             // 새 관리자 사용자 생성
             const adminData = {
