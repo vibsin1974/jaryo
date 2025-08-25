@@ -148,30 +148,22 @@ if [ \$? -ne 0 ]; then
 fi
 echo '✅ 의존성 설치 완료'
 
-# MariaDB 데이터베이스 초기화
-if [ -f 'scripts/init-mariadb.js' ]; then
-    echo '🗄️  MariaDB 데이터베이스 초기화 중...'
-    echo 'ℹ️  MariaDB 연결 설정:'
-    echo '  - 데이터베이스: jaryo'
-    echo '  - 사용자: jaryo_user'
-    echo '  - 소켓: /run/mysqld/mysqld10.sock'
+# 데이터베이스 초기화 (선택사항)
+if [ "\$INIT_DB" = "true" ] && [ -f 'scripts/init-database.js' ]; then
+    echo '🗄️  SQLite 데이터베이스 초기화 중...'
+    echo 'ℹ️  SQLite 데이터베이스: data/jaryo.db'
     
     export PATH='$NODE_PATH':\$PATH
-    if '$NODE_PATH'/npm run init-mariadb; then
-        echo '✅ MariaDB 초기화 완료'
+    if '$NODE_PATH'/npm run init-db; then
+        echo '✅ SQLite 초기화 완료'
     else
-        echo '❌ MariaDB 초기화 실패'
-        echo '💡 MariaDB 설정을 확인하고 다음 명령어를 실행하세요:'
-        echo '  mysql -u root -p << EOF'
-        echo '  CREATE DATABASE IF NOT EXISTS jaryo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
-        echo '  CREATE USER IF NOT EXISTS '\''jaryo_user'\''@'\''localhost'\'' IDENTIFIED BY '\''JaryoPass2024!@#'\'';'
-        echo '  GRANT ALL PRIVILEGES ON jaryo.* TO '\''jaryo_user'\''@'\''localhost'\'';'
-        echo '  FLUSH PRIVILEGES;'
-        echo '  EOF'
+        echo '❌ SQLite 초기화 실패'
+        echo '💡 수동으로 초기화하려면:'
+        echo '  npm run init-db'
         exit 1
     fi
 else
-    echo '⚠️  MariaDB 초기화 스크립트를 찾을 수 없습니다.'
+    echo 'ℹ️  데이터베이스 초기화 건너뜀 (INIT_DB=true로 설정시 초기화)'
 fi
 "
 
@@ -217,9 +209,8 @@ fi
 # 서비스 시작
 echo '🚀 자료실 서비스 시작 중...'
 cd '\$PROJECT_DIR'
-# NAS 환경 변수 설정
+# NAS 환경 변수 설정 (SQLite 사용)
 export NODE_ENV=production
-export DEPLOY_ENV=nas
 export HOST=0.0.0.0
 export PORT='$SERVICE_PORT'
 nohup \$NODE_PATH/node server.js > '\$LOG_FILE' 2>&1 &

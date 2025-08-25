@@ -6,21 +6,9 @@ const fs = require('fs');
 const bcrypt = require('bcrypt');
 const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
-// 환경에 따른 데이터베이스 헬퍼 선택
-const isNAS = process.env.NODE_ENV === 'production' || process.env.DEPLOY_ENV === 'nas';
-const isWindows = process.platform === 'win32' && !isNAS;
-
-let DatabaseHelper;
-if (isNAS) {
-    DatabaseHelper = require('./database/mariadb-helper');
-    console.log('🗄️ NAS 환경: MariaDB 사용');
-} else if (isWindows) {
-    DatabaseHelper = require('./database/db-helper');
-    console.log('🗄️ 로컬 Windows 환경: SQLite 사용');
-} else {
-    DatabaseHelper = require('./database/mariadb-helper');
-    console.log('🗄️ Linux 환경: MariaDB 사용');
-}
+// 모든 환경에서 SQLite 사용
+const DatabaseHelper = require('./database/db-helper');
+console.log('🗄️ SQLite 데이터베이스 사용');
 
 const app = express();
 const PORT = process.env.PORT || 3005;
