@@ -1330,7 +1330,6 @@ class AdminFileManager {
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">닫기</button>
-                        <button class="btn btn-primary" onclick="adminManager.editFile('${file.id}')">수정</button>
                         <button class="btn btn-danger" onclick="adminManager.deleteFile('${file.id}')">삭제</button>
                     </div>
                 </div>

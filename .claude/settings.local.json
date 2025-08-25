@@ -54,7 +54,10 @@
       "mcp__context7__get-library-docs",
       "Bash(npm run init-mariadb:*)",
       "Bash(npm test)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm run stop:*)",
+      "Bash(PORT=3007 node server.js)",
+      "Bash(HOST=119.64.1.86 PORT=3007 node server.js)"
     ],
     "deny": [],
     "ask": [],

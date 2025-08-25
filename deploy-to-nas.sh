@@ -9,13 +9,22 @@
 NAS_IP="${1:-119.64.1.86}"
 PROJECT_NAME="${2:-jaryo}"
 NAS_USER="vibsin9322"
-NAS_PASS="${3:-vibsin9322}"  # 기본 비밀번호, 환경변수 NAS_PASS로 오버라이드 가능
+# NAS_PASS 우선순위: 환경변수 > 스크립트 3번째 인자 > 프롬프트 방식
+if [ -n "$3" ]; then
+    NAS_PASS="$3"
+else
+    NAS_PASS="${NAS_PASS:-}"
+fi
 DEPLOY_DIR="/volume1/web/$PROJECT_NAME"
 SERVICE_PORT="3005"
 GITEA_URL="http://$NAS_IP:3000/vibsin9322/jaryo.git"
 
-# SSH 명령어 준비
-SSH_CMD="ssh -p 2222 -o ConnectTimeout=10 -o StrictHostKeyChecking=no $NAS_USER@$NAS_IP"
+# SSH 명령어 준비 (NAS_PASS가 있으면 plink로 비대화식, 없으면 ssh 프롬프트)
+if [ -n "$NAS_PASS" ]; then
+    SSH_CMD="plink -P 2222 -batch -pw \"$NAS_PASS\" $NAS_USER@$NAS_IP"
+else
+    SSH_CMD="ssh -p 2222 -o ConnectTimeout=10 -o StrictHostKeyChecking=no $NAS_USER@$NAS_IP"
+fi
 
 echo "=========================================="
 echo "🚀 시놀로지 NAS 자료실 배포 시작"
@@ -31,8 +40,12 @@ echo "=========================================="
 echo "📋 1단계: 사전 요구사항 확인"
 
 # SSH 방식 확인
-echo "🔧 SSH 접속 방식: 비밀번호 프롬프트 방식"
-echo "📝 SSH 연결 시 비밀번호 입력이 필요합니다."
+if [ -n "$NAS_PASS" ]; then
+    echo "🔧 SSH 접속 방식: 비밀번호 비대화식(plink)"
+else
+    echo "🔧 SSH 접속 방식: 비밀번호 프롬프트 방식"
+    echo "📝 SSH 연결 시 비밀번호 입력이 필요합니다."
+fi
 
 # SSH 연결 테스트 (포트 2222)
 echo "🔗 SSH 연결 테스트 중... (사용자: $NAS_USER, 포트: 2222)"
@@ -274,7 +287,7 @@ chmod +x '$DEPLOY_DIR/stop-nas-service.sh'
 echo ""
 echo "🎬 5단계: 서비스 시작"
 
-eval "$SSH_CMD '$DEPLOY_DIR/start-nas-service.sh"
+eval "$SSH_CMD '$DEPLOY_DIR/start-nas-service.sh'"
 
 # 6단계: 접속 테스트
 echo ""
@@ -303,5 +316,5 @@ if curl -s "http://$NAS_IP:$SERVICE_PORT" >/dev/null; then
 else
     echo "❌ 서비스 접속 실패"
     echo "로그 확인:"
-    eval "$SSH_CMD 'tail -20 $DEPLOY_DIR/logs/app.log"
+    eval "$SSH_CMD 'tail -20 $DEPLOY_DIR/logs/app.log'"
 fi
