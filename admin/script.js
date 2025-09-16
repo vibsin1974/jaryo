@@ -1367,6 +1367,22 @@ class AdminFileManager {
 
     resetCategoryForm() {
         document.getElementById('categoryName').value = '';
+        this.currentEditCategoryId = null;
+        
+        // 버튼 텍스트를 기본 상태로 복원
+        const submitBtn = document.getElementById('addCategoryBtn');
+        if (submitBtn) {
+            submitBtn.textContent = '➕ 카테고리 추가';
+            submitBtn.disabled = false;
+        }
+        
+        // 폼 제목을 기본 상태로 복원
+        const formTitle = document.querySelector('#categoryTab h2');
+        if (formTitle) {
+            formTitle.textContent = '🏷️ 카테고리 관리';
+        }
+        
+        console.log('카테고리 폼이 초기화되었습니다.');
     }
 
     renderCategoryList() {
