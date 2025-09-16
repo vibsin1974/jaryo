@@ -71,7 +71,8 @@
       "WebSearch",
       "Bash(uvx:*)",
       "Bash(npm run:*)",
-      "Bash(tasklist:*)"
+      "Bash(tasklist:*)",
+      "Bash(npm audit:*)"
     ],
     "deny": [],
     "ask": [],
