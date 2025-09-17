@@ -72,7 +72,14 @@
       "Bash(uvx:*)",
       "Bash(npm run:*)",
       "Bash(tasklist:*)",
-      "Bash(npm audit:*)"
+      "Bash(npm audit:*)",
+      "Bash(git config:*)",
+      "Bash(git remote:*)",
+      "Bash(findstr:*)",
+      "mcp__serena__activate_project",
+      "mcp__serena__list_dir",
+      "mcp__playwright__browser_resize",
+      "mcp__playwright__browser_take_screenshot"
     ],
     "deny": [],
     "ask": [],
